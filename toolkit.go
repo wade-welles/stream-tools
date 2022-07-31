@@ -70,6 +70,14 @@ func (t Toolkit) HandleWindowEvents() {
 	}
 	fmt.Printf("okayokay=======okayokay\n")
 
+	// TODO: Setup our three (or four with alt-scene) primary scenes
+	scene := map[string]*Scene{
+		"primary": t.OBS.Show.Scenes.Name("content:primary"),
+		"bumper":  t.OBS.Show.Scenes.Name("content:bumper"),
+		//"bumper-alt": t.OBS.Show.Scenes.Name("content:bumper-alt"),
+		"end": t.OBS.Show.Scenes.Name("content:end-card"),
+	}
+
 	// NOTE: Incorrect way of doing this; but using it to create a functional demo
 	// quickly. This short polls and we would obviously want to take advantage of
 	// the built in ability that exists within the API to subscribe to events like
@@ -111,11 +119,19 @@ func (t Toolkit) HandleWindowEvents() {
 					// TODO: THis MUST update the scenes so that scenes correctly
 					//       have CURRENT status.
 
-					t.OBS.Show.SetCurrentScene("content:bumper")
+					//t.OBS.Show.SetCurrentScene("content:bumper")
 
-					//bumperScene := t.OBS.Show.Scenes.Name("content:bumper")
+					// TODO: Have a 3 to 5 second delay before transitioning to this view
+					scene["bumper"].Transition(4 * time.Second)
+					scene["primary"].Transition(4 * time.Second)
+
+					//scene["primary"].Transition() - also valid bc variadic
+
+					// TODO: We  need to put code ontop and hide chromium
+					//      so ability to hide/unhide items and guarantee
+					//      ALL items are being parsed into our cached objects
+
 					//bumperScene.Transition()
-					//time.Sleep(5 * time.Second)
 					//t.OBS.Show.Scenes.Name("content:primary").Transition()
 					// TODO: Wait 5 (sleep)
 					// TODO: Maybe we can do like sc.Transition(seconds), default 0

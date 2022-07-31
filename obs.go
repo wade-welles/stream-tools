@@ -1,10 +1,10 @@
 package obstools
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"math/rand"
+	"time"
 
 	// OBS
 
@@ -367,7 +367,7 @@ func (sh *Show) CacheScenes() (bool, error) {
 			//})
 
 			fmt.Printf("scene: %v \n", scene.Name)
-			sh.Scenes = sh.Scenes.AddScene(
+			sh.AddScene(
 				scene.Name,
 				items,
 				len(scene.Name) == len(apiResponse.CurrentScene) &&
@@ -461,24 +461,25 @@ func (scs Scenes) Name(name string) *Scene {
 //     so
 ///     maybe like name and items?
 
-func (scs Scenes) NameExists(sceneName string) bool {
+func (scs Scenes) Exists(sceneName string) bool {
 	return scs.Name(sceneName) != nil
 }
 
 //  Add can not be done like this bc of the data type pulled fro0m the API
-func (scs Scenes) AddScene(sceneName string, sceneItems Items, sceneIsCurrent bool) Scenes {
-	if scs.NameExists(sceneName) {
+func (sh *Show) AddScene(sceneName string, sceneItems Items, sceneIsCurrent bool) *Show {
+	if sh.Scenes.Exists(sceneName) {
 		fmt.Printf("Scene already exists, skipping (should update rly)\n")
-		return scs
+		return sh
 	}
 
 	fmt.Printf("scene: %v \n", sceneName)
-	scs = append(scs, &Scene{
+	sh.Scenes = append(sh.Scenes, &Scene{
+		Show:      sh,
 		Name:      sceneName,
 		Items:     sceneItems,
 		IsCurrent: sceneIsCurrent,
 	})
-	return scs
+	return sh
 }
 
 // show.Scene("bumper").Transition()
@@ -487,7 +488,11 @@ func (scs Scenes) AddScene(sceneName string, sceneItems Items, sceneIsCurrent bo
 //
 //      scene.Transition()
 //
-func (sc Scene) Transition() error {
+func (sc Scene) Transition(sleepDuration ...time.Duration) error {
+	if 0 < len(sleepDuration) {
+		fmt.Printf("sleeping \n")
+		time.Sleep(sleepDuration[0])
+	}
 	// TODO: What if sc is NIL??????? well it cant be that but what about empty?
 	//       lets validate!
 	//
@@ -496,17 +501,11 @@ func (sc Scene) Transition() error {
 	fmt.Printf("scene\n")
 	fmt.Printf("  name: %v\n", sc.Name)
 
-	if len(sc.Name) == 0 {
-		return errors.New("scene is undefined")
-	}
+	//if len(sc.Name) == 0 {
+	//	return errors.New("scene is undefined")
+	//}
 
-	//_, err := sc.Show.OBS.Client.Scenes.SetCurrentScene(
-	//	&scenes.SetCurrentSceneParams{
-	//		SceneName: "xcv",
-	//	},
-	//)
-	//return err
-	return nil
+	return sc.Show.SetCurrentScene(sc.Name)
 }
 
 func (sh Show) SetCurrentScene(sceneName string) error {

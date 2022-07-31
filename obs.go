@@ -1,6 +1,7 @@
 package obstools
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -10,7 +11,7 @@ import (
 	goobs "github.com/andreykaipov/goobs"
 	events "github.com/andreykaipov/goobs/api/events"
 	requests "github.com/andreykaipov/goobs/api/requests"
-	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
+	"github.com/andreykaipov/goobs/api/requests/scenes"
 	sources "github.com/andreykaipov/goobs/api/requests/sources"
 	studiomode "github.com/andreykaipov/goobs/api/requests/studio_mode"
 	typedefs "github.com/andreykaipov/goobs/api/typedefs"
@@ -481,13 +482,38 @@ func (scs Scenes) AddScene(sceneName string, sceneItems Items, sceneIsCurrent bo
 }
 
 // show.Scene("bumper").Transition()
+// TODO: Pass in variadic time.Duration, and this can be the time to sleep
+//       then preform the transition.
+//
+//      scene.Transition()
+//
 func (sc Scene) Transition() error {
-	// TODO: What if sc is NIL???????
-	_, err := sc.Show.OBS.Client.Scenes.SetCurrentScene(
-		&scenes.SetCurrentSceneParams{
-			SceneName: sc.Name,
-		},
-	)
+	// TODO: What if sc is NIL??????? well it cant be that but what about empty?
+	//       lets validate!
+	//
+	//         (and eventually put validation in standardized methods)
+	//
+	fmt.Printf("scene\n")
+	fmt.Printf("  name: %v\n", sc.Name)
+
+	if len(sc.Name) == 0 {
+		return errors.New("scene is undefined")
+	}
+
+	//_, err := sc.Show.OBS.Client.Scenes.SetCurrentScene(
+	//	&scenes.SetCurrentSceneParams{
+	//		SceneName: "xcv",
+	//	},
+	//)
+	//return err
+	return nil
+}
+
+func (sh Show) SetCurrentScene(sceneName string) error {
+	sceneRequest := scenes.SetCurrentSceneParams{
+		SceneName: sceneName,
+	}
+	_, err := sh.OBS.Scenes.SetCurrentScene(&sceneRequest)
 	return err
 }
 

@@ -110,8 +110,13 @@ func (t Toolkit) HandleWindowEvents() {
 					//       API
 					// TODO: THis MUST update the scenes so that scenes correctly
 					//       have CURRENT status.
-					//t.OBS.Show.Scenes.Name("content:bumper").Transition()
+
+					t.OBS.Show.SetCurrentScene("content:bumper")
+
+					//bumperScene := t.OBS.Show.Scenes.Name("content:bumper")
+					//bumperScene.Transition()
 					//time.Sleep(5 * time.Second)
+					//t.OBS.Show.Scenes.Name("content:primary").Transition()
 					// TODO: Wait 5 (sleep)
 					// TODO: Maybe we can do like sc.Transition(seconds), default 0
 					// using variadic and only using first value if its there so it can
@@ -119,7 +124,6 @@ func (t Toolkit) HandleWindowEvents() {
 					// this might be good for hide and lock so you can hide for 5 seconds
 					// for example which may end up making it way way way easier to
 					// script stuff which is very important
-					//t.OBS.Show.Scenes.Name("content:primary").Transition()
 
 					// TODO: Test transition to scene, then test hiding and unhiding.
 

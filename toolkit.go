@@ -97,6 +97,9 @@ func (t Toolkit) HandleWindowEvents() {
 			fmt.Printf("current cached window: %v \n", t.X11.CurrentWindow)
 
 			if t.X11.HasActiveWindowChanged() {
+				fmt.Printf("The active window is: %v \n", t.X11.ActiveWindow())
+				fmt.Printf("ACTIVE window CHANGED!\n")
+
 				switch t.X11.ActiveWindow() {
 				case Primary:
 					fmt.Printf("[primary] active window?(%v) \n", t.X11.ActiveWindow())
@@ -107,8 +110,8 @@ func (t Toolkit) HandleWindowEvents() {
 					//       API
 					// TODO: THis MUST update the scenes so that scenes correctly
 					//       have CURRENT status.
-					t.OBS.Show.Scenes.Name("content:bumper").Transition()
-					time.Sleep(5 * time.Second)
+					//t.OBS.Show.Scenes.Name("content:bumper").Transition()
+					//time.Sleep(5 * time.Second)
 					// TODO: Wait 5 (sleep)
 					// TODO: Maybe we can do like sc.Transition(seconds), default 0
 					// using variadic and only using first value if its there so it can
@@ -116,7 +119,7 @@ func (t Toolkit) HandleWindowEvents() {
 					// this might be good for hide and lock so you can hide for 5 seconds
 					// for example which may end up making it way way way easier to
 					// script stuff which is very important
-					t.OBS.Show.Scenes.Name("content:primary").Transition()
+					//t.OBS.Show.Scenes.Name("content:primary").Transition()
 
 					// TODO: Test transition to scene, then test hiding and unhiding.
 
@@ -144,9 +147,10 @@ func (t Toolkit) HandleWindowEvents() {
 					// same scene; should merge this logic in a better way to reduce
 					// overall code
 
-					t.OBS.Show.Scenes.Name("content:bumper").Transition()
-					time.Sleep(5 * time.Second)
-					t.OBS.Show.Scenes.Name("content:primary").Transition()
+					// TODO What is scene isnt found???
+					//t.OBS.Show.Scenes.Name("content:bumper").Transition()
+					//time.Sleep(5 * time.Second)
+					//t.OBS.Show.Scenes.Name("content:primary").Transition()
 					// TODO:
 					// 	* Show [A RANDOM BUMPER] for X(5?) seconds
 					//  * Switch to the primary content
@@ -156,14 +160,14 @@ func (t Toolkit) HandleWindowEvents() {
 					fmt.Println("[chromium] active window?(%v)", t.X11.ActiveWindow())
 					t.X11.CacheActiveWindow()
 
-					t.OBS.Show.Scenes.Name("content:bumper").Transition()
-					time.Sleep(5 * time.Second)
+					//t.OBS.Show.Scenes.Name("content:bumper").Transition()
+					//time.Sleep(5 * time.Second)
 					// TODO: This one uses primary (and maybe it shouldnt but it does)
 					//       and it needs to be able to hide and unhide elements to work
 					//       so do this functionality REGARDLESs if you change it to
 					//       have its own scene (so we get the needed fucntionality of
 					//       hiding and unhiding)
-					t.OBS.Show.Scenes.Name("content:primary").Transition()
+					//t.OBS.Show.Scenes.Name("content:primary").Transition()
 
 				// TODO:
 				// 	* Show [A RANDOM BUMPER] for X(5?) seconds
@@ -178,6 +182,8 @@ func (t Toolkit) HandleWindowEvents() {
 				}
 				// TODO: Check what the active widnow currently is; then use obs-ws to
 				// change the scenes with the bumper in between
+			} else {
+				fmt.Printf("no ACTIVE window change\n")
 			}
 		}
 	}

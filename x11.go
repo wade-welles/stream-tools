@@ -79,7 +79,7 @@ func (x *X11) HasActiveWindowChanged() bool {
 	// If we record time last active window change happened, then we can limit
 	// the number of times it can change within x amount of time for better
 	// reliability under pressure.
-	return x.IsCurrentWindow(x.ActiveWindow())
+	return !x.IsCurrentWindow(x.ActiveWindow())
 }
 
 func (x *X11) ActiveWindow() WindowName {
@@ -117,9 +117,9 @@ func (x *X11) CacheActiveWindow() WindowName {
 // TODO: Naming issue here bigger than may originally appear
 // x.IsActiveWindow(Primary)
 func (x *X11) IsActiveWindow(windowName WindowName) bool {
-	return x.ActiveWindow() != windowName
+	return x.ActiveWindow() == windowName
 }
 
 func (x *X11) IsCurrentWindow(windowName WindowName) bool {
-	return x.CurrentWindow != windowName
+	return x.CurrentWindow == windowName
 }

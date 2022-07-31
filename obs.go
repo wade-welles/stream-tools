@@ -482,6 +482,7 @@ func (scs Scenes) AddScene(sceneName string, sceneItems Items, sceneIsCurrent bo
 
 // show.Scene("bumper").Transition()
 func (sc Scene) Transition() error {
+	// TODO: What if sc is NIL???????
 	_, err := sc.Show.OBS.Client.Scenes.SetCurrentScene(
 		&scenes.SetCurrentSceneParams{
 			SceneName: sc.Name,

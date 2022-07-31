@@ -12,7 +12,6 @@ import (
 type Window struct {
 	Name    WindowName
 	Focused bool // aka Active
-
 }
 
 type Windows []*Window
@@ -86,19 +85,21 @@ func (x *X11) HasActiveWindowChanged() bool {
 func (x *X11) ActiveWindow() WindowName {
 	windowName, err := ewmh.GetActiveWindow(x.Client).Reply(x.Client)
 	if err != nil {
-		fmt.Println("error:", err)
+		fmt.Println("error(ewmh.GetActiveWindow(x.Client)...):", err)
+		return UndefinedName
 	}
 
 	activeWindowName, err := ewmh.GetWMName(x.Client, windowName).Reply(x.Client)
 	if err != nil {
-		fmt.Println("error:", err)
+		fmt.Println("error(ewmh.GetWMName(x.Client, windowName)...):", err)
+		return UndefinedName
 	}
 
 	if strings.HasSuffix(strings.ToLower(activeWindowName), Chromium.String()) {
-		activeWindowName = strings.ToLower(activeWindowName[(len(activeWindowName) - len(Chromium.String())):])
+		return Chromium
+	} else {
+		return MarshalWindowName(activeWindowName)
 	}
-
-	return MarshalWindowName(activeWindowName)
 }
 
 func (x *X11) CacheActiveWindow() WindowName {

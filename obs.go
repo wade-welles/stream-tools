@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"os"
 
 	// OBS
 
@@ -247,6 +246,7 @@ type Stats struct {
 // NOTE: The API we are creating looks something like:
 //          obs.Show.Scenes.First()
 //          obs.Show.Scenes.First().Items.First().(Show()|.Hide())
+
 type OBS struct {
 	*goobs.Client
 
@@ -309,7 +309,10 @@ func (obs OBS) Events() {
 
 // TODO: Not a fan of this name, the general functionality; at least all obs
 // caching should be if separated also combined in a single public method
-func (sh Show) CacheScenes() (bool, error) {
+
+// TODO: We need a function for ADDING a scene, and this can then also have
+//       the validation necessary to prevent duplicates
+func (sh *Show) CacheScenes() (bool, error) {
 	apiResponse, err := sh.OBS.Client.Scenes.GetSceneList()
 	if err != nil {
 		return false, err
@@ -323,7 +326,7 @@ func (sh Show) CacheScenes() (bool, error) {
 	// determine if only current and a list is given or if preview is also
 	// provided or possibly other variables
 	items := Items{}
-	cachedScenes := Scenes{}
+	//cachedScenes := Scenes{}
 	for _, scene := range scenes {
 		// TODO: Initialize the scene object, add it to a slice of scenes and make
 		// sure that the scene and items are tied together so one can easily move
@@ -331,7 +334,7 @@ func (sh Show) CacheScenes() (bool, error) {
 		// Items: scene.Sources
 
 		for _, item := range scene.Sources {
-			fmt.Printf("item: ", item)
+			fmt.Printf("item: \n", item)
 
 			childItems := Items{}
 			if 0 < len(item.GroupChildren) {
@@ -340,6 +343,7 @@ func (sh Show) CacheScenes() (bool, error) {
 				for _, childItem := range item.GroupChildren {
 					if 0 < len(childItem.GroupChildren) {
 						fmt.Printf("is this even possible? bc if so, ...\n")
+						// TODO: Nesting is not recursive in obs
 					}
 					// TODO: This item has children and this will need to be checked
 					childItems = append(childItems, ParseItem(childItem))
@@ -355,18 +359,24 @@ func (sh Show) CacheScenes() (bool, error) {
 			// TODO: Not yet caching the Show object or scene objects
 			// TODO: Assign X/Y position value on item
 
-			cachedScenes = append(cachedScenes, &Scene{
-				Name:  scene.Name,
-				Items: items,
-			})
+			// TODO: old
+			//cachedScenes = append(cachedScenes, &Scene{
+			//	Name:  scene.Name,
+			//	Items: items,
+			//})
 
-			fmt.Println("scene:", scene.Name)
-			sh.Scenes = append(sh.Scenes, &Scene{
-				Name:  scene.Name,
-				Items: items,
-				IsCurrent: len(scene.Name) == len(apiResponse.CurrentScene) &&
+			fmt.Printf("scene: %v \n", scene.Name)
+			sh.Scenes = sh.Scenes.AddScene(
+				scene.Name,
+				items,
+				len(scene.Name) == len(apiResponse.CurrentScene) &&
 					scene.Name == apiResponse.CurrentScene,
-			})
+			)
+			// old
+			//sh.Scenes = append(sh.Scenes, &Scene{
+			//	Name:  scene.Name,
+			//	Items: items,
+			//})
 
 		}
 	}
@@ -436,6 +446,31 @@ func (scs Scenes) Name(name string) *Scene {
 	return nil
 }
 
+// TODO: THis is nice bc we get chaining additions scs.Add(sc1).Add(sc2)
+//   okay
+//     so
+///     maybe like name and items?
+
+func (scs Scenes) NameExists(sceneName string) bool {
+	return scs.Name(sceneName) != nil
+}
+
+//  Add can not be done like this bc of the data type pulled fro0m the API
+func (scs Scenes) AddScene(sceneName string, sceneItems Items, sceneIsCurrent bool) Scenes {
+	if scs.NameExists(sceneName) {
+		fmt.Printf("Scene already exists, skipping (should update rly)\n")
+		return scs
+	}
+
+	fmt.Printf("scene: %v \n", sceneName)
+	scs = append(scs, &Scene{
+		Name:      sceneName,
+		Items:     sceneItems,
+		IsCurrent: sceneIsCurrent,
+	})
+	return scs
+}
+
 // show.Scene("bumper").Transition()
 func (sc Scene) Transition() error {
 	_, err := sc.Show.OBS.Client.Scenes.SetCurrentScene(
@@ -444,20 +479,6 @@ func (sc Scene) Transition() error {
 		},
 	)
 	return err
-}
-
-// show.Transition("bumper")
-func (sh Show) Transition(sceneName string) error {
-	_, err := sh.OBS.Client.Scenes.SetCurrentScene(
-		&scenes.SetCurrentSceneParams{
-			SceneName: sceneName,
-		},
-	)
-	return err
-}
-
-func (sh Show) Scene(name string) *Scene {
-	return sh.Scenes.Name(name)
 }
 
 // obs.PreviewScene("name")
@@ -558,7 +579,8 @@ func (obs OBS) Sources() {
 	}
 
 	if len(list.Sources) == 0 {
-		fmt.Println("No sources!")
-		os.Exit(0)
+		fmt.Printf("No sources!\n")
+		// TODO: Why would we exit? And exit 0??? Thats no error
+		//os.Exit(0)
 	}
 }

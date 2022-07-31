@@ -23,6 +23,12 @@ func NewToolkit() Toolkit {
 		Delay: 1500 * time.Millisecond,
 	}
 	// TODO: Pull showname from SceneCollection.ScName
+
+	// TODO: The scenes and show object should be populated based on whatever
+	//       the scene collection that is currently active is. but keep in
+	//       mind the goal is to abstract awwy some of the less good design
+	//       bits into a better logical construct
+
 	toolkit.OBS.Show = &Show{
 		OBS:    toolkit.OBS,
 		Name:   "she hacked you",
@@ -53,6 +59,16 @@ func (t Toolkit) HandleWindowEvents() {
 	//	panic(err)
 	//}
 
+	fmt.Printf("iterating over SCENES to later do things like transition...\n")
+	for index, scene := range t.OBS.Show.Scenes {
+		// TODO: We are getting multiple of each of the scenes, we need to do a
+		// confirmation of existing scene so we dont have duplicates; can even hash
+		// the name and maybe some other value to avoid string comparisons
+		fmt.Printf("Scene Index: %v\n", index)
+		fmt.Printf("Scene Name: %v\n", scene.Name)
+	}
+	fmt.Printf("okayokay=======okayokay\n")
+
 	// NOTE: Incorrect way of doing this; but using it to create a functional demo
 	// quickly. This short polls and we would obviously want to take advantage of
 	// the built in ability that exists within the API to subscribe to events like
@@ -79,6 +95,7 @@ func (t Toolkit) HandleWindowEvents() {
 				switch t.X11.ActiveWindow() {
 				case Primary:
 					fmt.Println("[primary] active window?(%v)", t.X11.ActiveWindow())
+					t.X11.CacheActiveWindow()
 					// TODO:
 					// 	* Show [A RANDOM BUMPER] for X(5?) seconds
 
@@ -95,23 +112,26 @@ func (t Toolkit) HandleWindowEvents() {
 
 					//	_, _ = client.Sources.ToggleMute(&sources.ToggleMuteParams{Source: name})
 
-					t.X11.CacheActiveWindow()
 				case Secondary:
 					fmt.Println("[secondary] active window?(%v)", t.X11.ActiveWindow())
+					t.X11.CacheActiveWindow()
 					// TODO:
 					// 	* Show [A RANDOM BUMPER] for X(5?) seconds
 					//  * Switch to the primary content
 					//  * Mute any background music, and unmuting the mic
 
-					t.X11.CacheActiveWindow()
 				case Chromium:
 					fmt.Println("[chromium] active window?(%v)", t.X11.ActiveWindow())
-					// TODO:
-					// 	* Show [A RANDOM BUMPER] for X(5?) seconds
-					//  * Switch to the chrome window
-					//  * Mute any background music, and unmuting the mic
 					t.X11.CacheActiveWindow()
+				// TODO:
+				// 	* Show [A RANDOM BUMPER] for X(5?) seconds
+				//  * Switch to the chrome window
+				//  * Mute any background music, and unmuting the mic
+
 				default: // UndefinedName
+					// TODO: We should never allow this condition to ever occur, and by
+					// doing that we optimize it further bc we are not checking conditions
+					// that we dont want to begin with
 					fmt.Println("[undefined] active window?(%v)", t.X11.ActiveWindow())
 				}
 				// TODO: Check what the active widnow currently is; then use obs-ws to

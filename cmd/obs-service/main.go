@@ -14,6 +14,8 @@ import (
 // The initial goal of this software is to augment OBS
 
 func main() {
+	toolkit := obs.NewToolkit()
+
 	cmd, initErrors := cli.New(cli.App{
 		Name:        "obs-service",
 		Description: "A long running obs service toolkit",
@@ -25,7 +27,6 @@ func main() {
 			},
 			Fallback: func(c *cli.Context) error {
 				c.CLI.Log("Fallback action")
-				toolkit := obs.NewToolkit()
 				fmt.Println("Toolkit for the purpose of building a long-running linux service: \n %v", toolkit)
 
 				toolkit.HandleWindowEvents()

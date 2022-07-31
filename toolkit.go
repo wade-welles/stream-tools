@@ -35,7 +35,7 @@ func NewToolkit() Toolkit {
 		Scenes: Scenes{},
 	}
 	toolkit.OBS.Show.CacheScenes()
-	toolkit.X11.CacheActiveWindow()
+	toolkit.X11.InitActiveWindow()
 	return toolkit
 }
 
@@ -78,6 +78,7 @@ func (t Toolkit) HandleWindowEvents() {
 	for {
 		select {
 		case <-tick:
+			fmt.Printf("ticky tocky...\n")
 			//activeWindowName := MarshalWindowName(name)
 
 			//fmt.Printf("marshalled window name (%v)\n", activeWindowName)
@@ -92,6 +93,9 @@ func (t Toolkit) HandleWindowEvents() {
 			//     have like state-machine style pre-defined transitions
 
 			//     has it changed to a valid value? *not just has the value chagned*
+
+			fmt.Printf("current cached window: %v \n", t.X11.CurrentWindow)
+
 			if t.X11.HasActiveWindowChanged() {
 				switch t.X11.ActiveWindow() {
 				case Primary:
@@ -135,6 +139,14 @@ func (t Toolkit) HandleWindowEvents() {
 				case Secondary:
 					fmt.Println("[secondary] active window?(%v)", t.X11.ActiveWindow())
 					t.X11.CacheActiveWindow()
+
+					// TODO: Important: This is doing same as above bc they are on the
+					// same scene; should merge this logic in a better way to reduce
+					// overall code
+
+					t.OBS.Show.Scenes.Name("content:bumper").Transition()
+					time.Sleep(5 * time.Second)
+					t.OBS.Show.Scenes.Name("content:primary").Transition()
 					// TODO:
 					// 	* Show [A RANDOM BUMPER] for X(5?) seconds
 					//  * Switch to the primary content
@@ -143,6 +155,16 @@ func (t Toolkit) HandleWindowEvents() {
 				case Chromium:
 					fmt.Println("[chromium] active window?(%v)", t.X11.ActiveWindow())
 					t.X11.CacheActiveWindow()
+
+					t.OBS.Show.Scenes.Name("content:bumper").Transition()
+					time.Sleep(5 * time.Second)
+					// TODO: This one uses primary (and maybe it shouldnt but it does)
+					//       and it needs to be able to hide and unhide elements to work
+					//       so do this functionality REGARDLESs if you change it to
+					//       have its own scene (so we get the needed fucntionality of
+					//       hiding and unhiding)
+					t.OBS.Show.Scenes.Name("content:primary").Transition()
+
 				// TODO:
 				// 	* Show [A RANDOM BUMPER] for X(5?) seconds
 				//  * Switch to the chrome window

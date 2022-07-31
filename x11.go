@@ -102,6 +102,12 @@ func (x *X11) ActiveWindow() WindowName {
 	}
 }
 
+func (x *X11) InitActiveWindow() WindowName {
+	x.CurrentWindow = Primary
+	x.ActiveWindowChangedAt = time.Now()
+	return x.CurrentWindow
+}
+
 func (x *X11) CacheActiveWindow() WindowName {
 	x.CurrentWindow = x.ActiveWindow()
 	x.ActiveWindowChangedAt = time.Now()

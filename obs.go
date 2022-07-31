@@ -437,6 +437,15 @@ func (scs Scenes) Preview() *Scene {
 	return nil
 }
 
+func (scs Scenes) Index(sceneIndex int) *Scene {
+	for index, scene := range scs {
+		if sceneIndex == index {
+			return scene
+		}
+	}
+	return nil
+}
+
 func (scs Scenes) Name(name string) *Scene {
 	for _, scene := range scs {
 		if scene.HasName(name) {

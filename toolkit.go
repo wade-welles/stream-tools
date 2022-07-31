@@ -66,6 +66,7 @@ func (t Toolkit) HandleWindowEvents() {
 		// the name and maybe some other value to avoid string comparisons
 		fmt.Printf("Scene Index: %v\n", index)
 		fmt.Printf("Scene Name: %v\n", scene.Name)
+		fmt.Printf("print each scene item with the visibility and locked status\n")
 	}
 	fmt.Printf("okayokay=======okayokay\n")
 
@@ -94,8 +95,27 @@ func (t Toolkit) HandleWindowEvents() {
 			if t.X11.HasActiveWindowChanged() {
 				switch t.X11.ActiveWindow() {
 				case Primary:
-					fmt.Println("[primary] active window?(%v)", t.X11.ActiveWindow())
+					fmt.Printf("[primary] active window?(%v) \n", t.X11.ActiveWindow())
 					t.X11.CacheActiveWindow()
+
+					// TODO: All of our work was to lay down foundation for
+					//       a more complex framework that creates this beautiful
+					//       API
+					// TODO: THis MUST update the scenes so that scenes correctly
+					//       have CURRENT status.
+					t.OBS.Show.Scenes.Name("content:bumper").Transition()
+					time.Sleep(5 * time.Second)
+					// TODO: Wait 5 (sleep)
+					// TODO: Maybe we can do like sc.Transition(seconds), default 0
+					// using variadic and only using first value if its there so it can
+					// be empty .Transition() or .Transition(5 * time.Second)
+					// this might be good for hide and lock so you can hide for 5 seconds
+					// for example which may end up making it way way way easier to
+					// script stuff which is very important
+					t.OBS.Show.Scenes.Name("content:primary").Transition()
+
+					// TODO: Test transition to scene, then test hiding and unhiding.
+
 					// TODO:
 					// 	* Show [A RANDOM BUMPER] for X(5?) seconds
 

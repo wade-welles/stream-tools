@@ -7,11 +7,10 @@ import (
 	"time"
 
 	// OBS
-
 	goobs "github.com/andreykaipov/goobs"
 	events "github.com/andreykaipov/goobs/api/events"
 	requests "github.com/andreykaipov/goobs/api/requests"
-	"github.com/andreykaipov/goobs/api/requests/scenes"
+	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
 	sources "github.com/andreykaipov/goobs/api/requests/sources"
 	studiomode "github.com/andreykaipov/goobs/api/requests/studio_mode"
 	typedefs "github.com/andreykaipov/goobs/api/typedefs"
@@ -25,13 +24,108 @@ import (
 // audio level tracks stored in their own compartmentalized object to control
 // mute/volume **and volume is very important; since we unmute bg music and mute
 // our primary microphone that is a single channel spread across two.
+
+// NOTE: The point on the source that the item is manipulated from.
+//       The sum of 1=Left or 2=Right, and 4=Top or 8=Bottom,
+//        or omit to center on that axis.
+//  TODO: Probably just not just ignore but totally subtract
+type Alignment uint8
+
+const (
+	CenterAlign      Alignment = 0
+	LeftAlign        Alignment = 1
+	RightAlign       Alignment = 2
+	TopAlign         Alignment = 4
+	TopLeftAlign     Alignment = 5
+	TopRightAlign    Alignment = 6
+	BottomAlign      Alignment = 8
+	BottomLeftAlign  Alignment = 9
+	BottomRightAlign Alignment = 10
+)
+
+func (a Alignment) String() string {
+	switch a {
+	case CenterAlign:
+		return "center"
+	case LeftAlign:
+		return "left"
+	case RightAlign:
+		return "right"
+	case TopAlign:
+		return "top"
+	case TopRightAlign:
+		return "top-right"
+	case BottomAlign:
+		return "bottom"
+	case BottomLeftAlign:
+		return "bottom-left"
+	case BottomRightAlign:
+		return "bottom-right"
+	default:
+		return "undefined"
+	}
+}
+
+func MarshalAlignment(alignment int) Alignment { return Alignment(alignment) }
+
+type ItemType uint8
+
+// NOTE: From typedefs/scene_item.go from goobs
+// Source type. Value is one of the following: "input", "filter", "transition", "scene" or "unknown"
+const (
+	UnknownType ItemType = iota
+	InputType
+	FilterType
+	TransitionType
+	SceneType
+)
+
+func (itt ItemType) String() string {
+	switch itt {
+	case InputType:
+		return "input"
+	case FilterType:
+		return "filter"
+	case TransitionType:
+		return "transition"
+	case SceneType:
+		return "scene"
+	default: // UnknownType
+		return "unknown"
+	}
+}
+
+func MarshalItemType(itemType string) ItemType {
+	switch itemType {
+	case InputType.String():
+		return InputType
+	case FilterType.String():
+		return FilterType
+	case TransitionType.String():
+		return TransitionType
+	case SceneType.String():
+		return SceneType
+	default:
+		return UnknownType
+	}
+}
+
+type Dimensions struct {
+	Height float64
+	Width  float64
+}
+
 type Item struct {
 	Id   int
 	Name string
+	Type ItemType
+
+	// TODO: Add
+	//        type
+	//        folder/relation
+	//
 
 	Layer
-
-	Position *Position
 
 	Scene *Scene
 	Items *Items
@@ -47,18 +141,87 @@ func (it Item) HasName(name string) bool {
 	return len(it.Name) == len(name) && it.Name == name
 }
 
+func PrintItem(item typedefs.SceneItem) {
+	fmt.Printf("__item__\n")
+	fmt.Printf("  id: %v \n", item.Id)
+	fmt.Printf("  type: %v \n", item.Type)
+	fmt.Printf("  name: %v \n", item.Name)
+	fmt.Printf("  hidden: %v \n", !item.Render)
+	fmt.Printf("  locked: %v \n", item.Locked)
+	// Group
+	fmt.Printf("  _group_\n")
+	fmt.Printf("    is_group: %v \n", len(item.GroupChildren) != 0)
+	fmt.Printf("    parent_group_name: %v \n", item.ParentGroupName)
+	fmt.Printf("    group_children: \n")
+	fmt.Printf("      count: %v \n", len(item.GroupChildren))
+	fmt.Printf("      children: %v \n", item.GroupChildren)
+	// Audio
+	fmt.Printf("  _audio_\n")
+	fmt.Printf("    muted: %v \n", item.Muted)
+	fmt.Printf("    volume: %v \n", item.Volume)
+	// TODO: 3 difference coordinates? seems silly
+	fmt.Printf("  _position_\n")
+	fmt.Printf("    alignment: %v \n", item.Alignment)
+	fmt.Printf("    c_x: %v, c_y: %v \n", item.Cx, item.Cy)
+	fmt.Printf("    source_c_x: %v, source_c_y: %v \n", item.SourceCx, item.SourceCy)
+	fmt.Printf("    X: %v, Y: %v \n", item.X, item.Y)
+}
+
+// TODO: Look at OUR Item type and redo the print function using our
+//       simplified type
+//func (it Item) Print() {
+//	fmt.Printf("__item__\n")
+//	fmt.Printf("  id: %v \n", it.Id)
+//	fmt.Printf("  type: %v \n", it.Type)
+//	fmt.Printf("  name: %v \n", it.Name)
+//	fmt.Printf("  hidden: %v \n", !it.Render)
+//	fmt.Printf("  locked: %v \n", it.Locked)
+//	// Group
+//	fmt.Printf("  _group_\n")
+//	fmt.Printf("    is_group: %v \n", len(it.GroupChildren) != 0)
+//	fmt.Printf("    parent_group_name: %v \n", it.ParentGroupName)
+//	fmt.Printf("    group_children: \n")
+//	fmt.Printf("      count: %v \n", len(it.GroupChildren))
+//	fmt.Printf("      children: %v \n", it.GroupChildren)
+//	// Audio
+//	fmt.Printf("  _audio_\n")
+//	fmt.Printf("    muted: %v \n", it.Muted)
+//	fmt.Printf("    volume: %v \n", it.Volume)
+//	// TODO: 3 difference coordinates? seems silly
+//	fmt.Printf("  _position_\n")
+//	fmt.Printf("    alignment: %v \n", it.Alignment)
+//	fmt.Printf("    c_x: %v, c_y: %v \n", it.Cx, it.Cy)
+//	fmt.Printf("    source_c_x: %v, source_c_y: %v \n", it.SourceCx, it.SourceCy)
+//	fmt.Printf("    X: %v, Y: %v \n", it.X, it.Y)
+//}
+
 func ParseItem(item typedefs.SceneItem) *Item {
 	// TODO: Not yet cahcing the scene pointers and show pointer (essentially no
 	// relationships at all atm)
+
+	// cX is width of sprite, cY is height
+
+	// x, y is position of the sprite
+
 	return &Item{
 		Id:   item.Id,
 		Name: item.Name,
+		Type: MarshalItemType(item.Type),
 		Layer: Layer{
-			Visible: item.Render,
-			Locked:  item.Locked,
+			Visible:   item.Render,
+			Locked:    item.Locked,
+			Alignment: item.Alignment,
 			Position: Position{
 				X: item.X,
 				Y: item.Y,
+			},
+			Dimensions: Dimensions{
+				Width:  item.Cx,
+				Height: item.Cy,
+			},
+			Source: Dimensions{
+				Width:  item.SourceCx,
+				Height: item.SourceCy,
 			},
 		},
 	}
@@ -82,10 +245,13 @@ func (its Items) Name(name string) *Item {
 // obs.Client.Scenes.First().Items.Hidden() => all hidden items in scene
 
 type Layer struct {
-	Order   int
-	Visible bool
-	Locked  bool
+	Order     int
+	Visible   bool
+	Locked    bool
+	Alignment int
 	Position
+	Dimensions
+	Source Dimensions
 }
 
 type Scene struct {
@@ -321,33 +487,26 @@ func (sh *Show) CacheScenes() (bool, error) {
 
 	scenes := apiResponse.Scenes
 
-	// TODO: Iterate through the scene.Sources ([]SceneItem) and add them by
-	// creating our item objects and adding them to the new scene.
-	// TODO: Look at the apiresponse object returned from GetSceneList to
-	// determine if only current and a list is given or if preview is also
-	// provided or possibly other variables
 	items := Items{}
-	//cachedScenes := Scenes{}
 	for _, scene := range scenes {
-		// TODO: Initialize the scene object, add it to a slice of scenes and make
-		// sure that the scene and items are tied together so one can easily move
-		// between them
-		// Items: scene.Sources
-
+		fmt.Printf("___________________________________________\n")
+		fmt.Printf("__scene__\n")
+		fmt.Printf("  name: %v \n", scene.Name)
 		for _, item := range scene.Sources {
-			fmt.Printf("item: \n", item)
-
-			childItems := Items{}
+			// NOTE: Cover the case were we do need the child items as their own
+			//       item(s) with a zed.
+			//       We want the ability to store just the child items into a
+			//       a group item's Items (sub-items essentially) field.
+			//       We will eventually support nested recurisve single item
+			//       type representing all items and all folder types and then
+			//       we use that abstraction to interact with OBS so we are not
+			//       confined to OBS not so good design patterns and data modeling
+			//       architecture? .. :(
+			//childItems := Items{}
 			if 0 < len(item.GroupChildren) {
-				// TODO: This item has children and this will need to be checked
-				// recursively perhaps to guarantee we dont miss any
 				for _, childItem := range item.GroupChildren {
-					if 0 < len(childItem.GroupChildren) {
-						fmt.Printf("is this even possible? bc if so, ...\n")
-						// TODO: Nesting is not recursive in obs
-					}
-					// TODO: This item has children and this will need to be checked
-					childItems = append(childItems, ParseItem(childItem))
+					PrintItem(childItem)
+					items = append(items, ParseItem(childItem))
 				}
 			}
 
@@ -356,30 +515,18 @@ func (sh *Show) CacheScenes() (bool, error) {
 
 			//       Has sub-items
 			//       Has scene info
+			PrintItem(item)
 			items = append(items, ParseItem(item))
 			// TODO: Not yet caching the Show object or scene objects
 			// TODO: Assign X/Y position value on item
-
-			// TODO: old
-			//cachedScenes = append(cachedScenes, &Scene{
-			//	Name:  scene.Name,
-			//	Items: items,
-			//})
-
-			fmt.Printf("scene: %v \n", scene.Name)
-			sh.AddScene(
-				scene.Name,
-				items,
-				len(scene.Name) == len(apiResponse.CurrentScene) &&
-					scene.Name == apiResponse.CurrentScene,
-			)
-			// old
-			//sh.Scenes = append(sh.Scenes, &Scene{
-			//	Name:  scene.Name,
-			//	Items: items,
-			//})
-
 		}
+
+		sh.AddScene(
+			scene.Name,
+			items,
+			len(scene.Name) == len(apiResponse.CurrentScene) &&
+				scene.Name == apiResponse.CurrentScene,
+		)
 	}
 
 	return 0 < sh.Scenes.Size(), err

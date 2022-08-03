@@ -2,6 +2,7 @@ package obstools
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -60,23 +61,31 @@ func (t Toolkit) HandleWindowEvents() {
 	//}
 
 	fmt.Printf("iterating over SCENES to later do things like transition...\n")
-	for index, scene := range t.OBS.Show.Scenes {
+	scene := map[string]*Scene{}
+	for index, cachedScene := range t.OBS.Show.Scenes {
 		// TODO: We are getting multiple of each of the scenes, we need to do a
 		// confirmation of existing scene so we dont have duplicates; can even hash
 		// the name and maybe some other value to avoid string comparisons
 		fmt.Printf("Scene Index: %v\n", index)
-		fmt.Printf("Scene Name: %v\n", scene.Name)
+		fmt.Printf("Scene Name: %v\n", cachedScene.Name)
 		fmt.Printf("print each scene item with the visibility and locked status\n")
+		cachedSceneName := strings.Split(cachedScene.Name, "content:")
+		fmt.Printf("cachedSceneName: %v\n", cachedSceneName)
+		fmt.Printf("len(cachedSceneName)=%v\n", len(cachedSceneName))
+		if 0 < len(cachedSceneName) {
+			fmt.Printf("cachedSceneName[1]: %v\n", cachedSceneName[1])
+			scene[cachedSceneName[1]] = cachedScene
+		}
 	}
 	fmt.Printf("okayokay=======okayokay\n")
 
 	// TODO: Setup our three (or four with alt-scene) primary scenes
-	scene := map[string]*Scene{
-		"primary": t.OBS.Show.Scenes.Name("content:primary"),
-		"bumper":  t.OBS.Show.Scenes.Name("content:bumper"),
-		//"bumper-alt": t.OBS.Show.Scenes.Name("content:bumper-alt"),
-		"end": t.OBS.Show.Scenes.Name("content:end-card"),
-	}
+	//{
+	//	"primary": t.OBS.Show.Scenes.Name("content:primary"),
+	//	"bumper":  t.OBS.Show.Scenes.Name("content:bumper"),
+	//	//"bumper-alt": t.OBS.Show.Scenes.Name("content:bumper-alt"),
+	//	"end": t.OBS.Show.Scenes.Name("content:end-card"),
+	//}
 
 	// NOTE: Incorrect way of doing this; but using it to create a functional demo
 	// quickly. This short polls and we would obviously want to take advantage of
@@ -122,8 +131,13 @@ func (t Toolkit) HandleWindowEvents() {
 					//t.OBS.Show.SetCurrentScene("content:bumper")
 
 					// TODO: Have a 3 to 5 second delay before transitioning to this view
-					scene["bumper"].Transition(4 * time.Second)
-					scene["primary"].Transition(4 * time.Second)
+
+					if scene, ok := scene["bumper"]; ok {
+						scene.Transition(4 * time.Second)
+					}
+					if scene, ok := scene["primary"]; ok {
+						scene.Transition(4 * time.Second)
+					}
 
 					//scene["primary"].Transition() - also valid bc variadic
 

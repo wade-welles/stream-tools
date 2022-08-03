@@ -210,7 +210,7 @@ func ParseItem(item typedefs.SceneItem) *Item {
 		Layer: Layer{
 			Visible:   item.Render,
 			Locked:    item.Locked,
-			Alignment: item.Alignment,
+			Alignment: int(item.Alignment),
 			Position: Position{
 				X: item.X,
 				Y: item.Y,

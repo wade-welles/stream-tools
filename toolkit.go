@@ -77,15 +77,6 @@ func (t Toolkit) HandleWindowEvents() {
 			scene[cachedSceneName[1]] = cachedScene
 		}
 	}
-	fmt.Printf("okayokay=======okayokay\n")
-
-	// TODO: Setup our three (or four with alt-scene) primary scenes
-	//{
-	//	"primary": t.OBS.Show.Scenes.Name("content:primary"),
-	//	"bumper":  t.OBS.Show.Scenes.Name("content:bumper"),
-	//	//"bumper-alt": t.OBS.Show.Scenes.Name("content:bumper-alt"),
-	//	"end": t.OBS.Show.Scenes.Name("content:end-card"),
-	//}
 
 	// NOTE: Incorrect way of doing this; but using it to create a functional demo
 	// quickly. This short polls and we would obviously want to take advantage of
@@ -137,6 +128,10 @@ func (t Toolkit) HandleWindowEvents() {
 					}
 					if scene, ok := scene["primary"]; ok {
 						scene.Transition(4 * time.Second)
+					}
+
+					for index, item := range scene["primary"].Items {
+						scene["primary"].Items[index].Unlock()
 					}
 
 					//scene["primary"].Transition() - also valid bc variadic

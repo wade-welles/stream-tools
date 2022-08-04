@@ -123,15 +123,24 @@ func (t Toolkit) HandleWindowEvents() {
 
 					// TODO: Have a 3 to 5 second delay before transitioning to this view
 
-					if scene, ok := scene["bumper"]; ok {
-						scene.Transition(4 * time.Second)
-					}
-					if scene, ok := scene["primary"]; ok {
-						scene.Transition(4 * time.Second)
-					}
+					// NOTE: These work
+					//if scene, ok := scene["bumper"]; ok {
+					//	scene.Transition(4 * time.Second)
+					//}
+					//if scene, ok := scene["primary"]; ok {
+					//	scene.Transition(4 * time.Second)
+					//}
 
-					for index, item := range scene["primary"].Items {
-						scene["primary"].Items[index].Unlock()
+					// TODO: Using this we have discovered that items are not being
+					//       stored within item (for folders); and we have no real
+					//       way of making this determiniation reasonably well currently
+
+					if dynamicAvatar := scene["primary"].Item("dynamic avatar"); dynamicAvatar != nil {
+						fmt.Printf("dynamic avatar item found!")
+						dynamicAvatar.Print()
+
+					} else {
+						fmt.Printf("dynamic avatar item NOT found!")
 					}
 
 					//scene["primary"].Transition() - also valid bc variadic

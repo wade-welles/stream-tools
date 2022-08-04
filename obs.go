@@ -95,6 +95,9 @@ func (itt ItemType) String() string {
 	}
 }
 
+// TODO: Item type ideally should have group or folder in here but these are
+//       the ones from OBS; so itd probably need to be separate from our
+//       custom ones and then added together with a further type
 func MarshalItemType(itemType string) ItemType {
 	switch itemType {
 	case InputType.String():
@@ -115,6 +118,18 @@ type Dimensions struct {
 	Width  float64
 }
 
+// TODO: We could use len of Items being greater than one to determine
+//       if a given item is a folder (or group using OBS naming) but
+//       an item can be a folder (or group) without any items and is
+//       still a groupppp
+//
+//       but keep in mind we didnt want to have to implement a special
+//       enumerator or worse have a bool thats like IsGroup or IsFolder
+//
+//       ideally we keep all that logix with just using our nesting of
+//       items recursively
+//
+
 type Item struct {
 	Id   int
 	Name string
@@ -127,8 +142,10 @@ type Item struct {
 
 	Layer
 
+	Parent *Item
+	Items  Items
+
 	Scene *Scene
-	Items *Items
 	Show  *Show
 }
 
@@ -139,6 +156,33 @@ type Position struct {
 
 func (it Item) HasName(name string) bool {
 	return len(it.Name) == len(name) && it.Name == name
+}
+
+// TODO: One issue with this is that something can be a folder without
+//       having any items within it; and while that distinction may be
+//       useless to us, it may cause issues in the future since there
+//       is no simple way to switch between types beyond deleting and
+//       recreating
+// NOTE: IsGroup would be the OBS naming
+func (it Item) IsFolder() bool { return (0 < len(it.Items)) }
+
+func (it *Item) Unlock() { it.Locked = false }
+func (it *Item) Lock()   { it.Locked = true }
+func (it *Item) Unhide() { it.Visible = false }
+func (it *Item) Hide()   { it.Visible = true }
+
+func (it Item) Print() {
+	fmt.Printf("item: \n")
+	fmt.Printf("  id: %v \n", it.Id)
+	fmt.Printf("  name: %v \n", it.Name)
+	//fmt.Printf("  type: %v \n", item.Type.String())
+	// Its the same without bc by default it tries String()
+	fmt.Printf("  type: %v \n", it.Type)
+	fmt.Printf("  locked: %v \n", it.Locked)
+	fmt.Printf("  visible: %v \n", it.Visible)
+	fmt.Printf("  len(items): %v \n", len(it.Items))
+	fmt.Printf("  scene(*): %v \n", it.Scene)
+	fmt.Printf("  show(*): %v \n", it.Show)
 }
 
 func PrintItem(item typedefs.SceneItem) {
@@ -204,6 +248,7 @@ func ParseItem(item typedefs.SceneItem) *Item {
 	// x, y is position of the sprite
 
 	return &Item{
+		//Items: Items{},
 		Id:   item.Id,
 		Name: item.Name,
 		Type: MarshalItemType(item.Type),
@@ -229,10 +274,22 @@ func ParseItem(item typedefs.SceneItem) *Item {
 
 type Items []*Item
 
+// NOTE: A recursive calling of Name to check child items is preferred
+//       but OBS folders/grouping only supports 1 level so this is
+//       adequate
+//       And OBS does not support duplicate item naming (or scene)
 func (its Items) Name(name string) *Item {
 	for _, item := range its {
 		if item.HasName(name) {
 			return item
+		} else {
+			if item.IsFolder() {
+				for _, childItem := range item.Items {
+					if childItem.HasName(name) {
+						return childItem
+					}
+				}
+			}
 		}
 	}
 	return nil
@@ -266,11 +323,6 @@ type Scene struct {
 
 func (sc *Scene) Unlock() { sc.Locked = false }
 func (sc *Scene) Lock()   { sc.Locked = true }
-
-func (it *Item) Unlock() { it.Locked = false }
-func (it *Item) Lock()   { it.Locked = true }
-func (it *Item) Unhide() { it.Visible = false }
-func (it *Item) Hide()   { it.Visible = true }
 
 func (its Items) Unlocked() (unlockedItems Items) {
 	for _, item := range its {
@@ -319,6 +371,15 @@ func (its Items) Last() *Item  { return its[its.Size()-1] }
 
 // scene.Item("itemName").Hide()
 // scene.Items.Name("itemName").Hide()
+func (its Items) Folders() (folderItems Items) {
+	for _, item := range its {
+		if item.IsFolder() {
+			folderItems = append(folderItems, item)
+		}
+	}
+	return folderItems
+}
+
 func (sc Scene) Item(name string) *Item {
 	return sc.Items.Name(name)
 }
@@ -492,6 +553,7 @@ func (sh *Show) CacheScenes() (bool, error) {
 		fmt.Printf("___________________________________________\n")
 		fmt.Printf("__scene__\n")
 		fmt.Printf("  name: %v \n", scene.Name)
+
 		for _, item := range scene.Sources {
 			// NOTE: Cover the case were we do need the child items as their own
 			//       item(s) with a zed.
@@ -502,21 +564,30 @@ func (sh *Show) CacheScenes() (bool, error) {
 			//       we use that abstraction to interact with OBS so we are not
 			//       confined to OBS not so good design patterns and data modeling
 			//       architecture? .. :(
-			//childItems := Items{}
+
+			PrintItem(item)
+			parsedItem := ParseItem(item)
+
 			if 0 < len(item.GroupChildren) {
 				for _, childItem := range item.GroupChildren {
 					PrintItem(childItem)
-					items = append(items, ParseItem(childItem))
+					parsedChildItem := ParseItem(childItem)
+					// NOTE: This was when we were putting all parsedChildItems in
+					//       the scene level items.
+					//items = append(items, parsedChildItem)
+					parsedChildItem.Parent = parsedItem
+					parsedItem.Items = append(parsedItem.Items, parsedChildItem)
 				}
 			}
+
+			items = append(items, parsedItem)
 
 			// TODO: Use ParentGroupName to ensure we carry over any existing
 			// relationships
 
 			//       Has sub-items
 			//       Has scene info
-			PrintItem(item)
-			items = append(items, ParseItem(item))
+
 			// TODO: Not yet caching the Show object or scene objects
 			// TODO: Assign X/Y position value on item
 		}
@@ -613,18 +684,18 @@ func (scs Scenes) Exists(sceneName string) bool {
 }
 
 //  Add can not be done like this bc of the data type pulled fro0m the API
-func (sh *Show) AddScene(sceneName string, sceneItems Items, sceneIsCurrent bool) *Show {
-	if sh.Scenes.Exists(sceneName) {
+func (sh *Show) AddScene(name string, items Items, isCurrent bool) *Show {
+	if sh.Scenes.Exists(name) {
 		fmt.Printf("Scene already exists, skipping (should update rly)\n")
 		return sh
 	}
 
-	fmt.Printf("scene: %v \n", sceneName)
+	fmt.Printf("scene: %v \n", name)
 	sh.Scenes = append(sh.Scenes, &Scene{
 		Show:      sh,
-		Name:      sceneName,
-		Items:     sceneItems,
-		IsCurrent: sceneIsCurrent,
+		Name:      name,
+		Items:     items,
+		IsCurrent: isCurrent,
 	})
 	return sh
 }

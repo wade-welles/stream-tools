@@ -168,7 +168,7 @@ func (it Item) HasName(name string) bool {
 func (it Item) IsFolder() bool { return (0 < len(it.Items)) }
 
 func (it Item) Update() error {
-
+	return it.Scene.Show.UpdateItem(it)
 }
 
 // TODO: This update requires us to do a write against the OBS WS API
@@ -257,7 +257,18 @@ func PrintItem(item typedefs.SceneItem) {
 //	fmt.Printf("    X: %v, Y: %v \n", it.X, it.Y)
 //}
 
+func (it *Item) ParseItem(item typedefs.SceneItem) *Item {
+	parsedChildItem := ParseItem(it.Scene, item)
+	parsedChildItem.Parent = it
+	it.Items = append(it.Items, parsedChildItem)
+	return it
+}
+
 func (sc *Scene) ParseItem(item typedefs.SceneItem) *Item {
+	return ParseItem(sc, item)
+}
+
+func ParseItem(scene *Scene, item typedefs.SceneItem) *Item {
 	// TODO: Not yet cahcing the scene pointers and show pointer (essentially no
 	// relationships at all atm)
 
@@ -265,8 +276,8 @@ func (sc *Scene) ParseItem(item typedefs.SceneItem) *Item {
 
 	// x, y is position of the sprite
 
-	item := &Item{
-		Scene: sc,
+	it := &Item{
+		Scene: scene,
 		Id:    item.Id,
 		Name:  item.Name,
 		Type:  MarshalItemType(item.Type),
@@ -289,9 +300,9 @@ func (sc *Scene) ParseItem(item typedefs.SceneItem) *Item {
 		},
 	}
 
-	sc.Items = append(sc.Items, item)
+	scene.Items = append(scene.Items, it)
 
-	return item
+	return it
 }
 
 type Items []*Item
@@ -519,9 +530,9 @@ func (obs OBS) StudioMode() bool {
 //  TODO: This would be better as obs.Shows.Active(); but that means creating a
 //  Shows type (POTENTIALLY, but ideally no)
 
-func (obs OBS) ActiveShow() *Show {
-	return nil
-}
+//func (obs OBS) ActiveShow() *Show {
+//	return nil
+//}
 
 // TODO: This should either give the full OBS object returned (like an init
 // function) or this should be a method on OBS after it is created you connect.
@@ -576,6 +587,8 @@ func (sh *Show) CacheScenes() (bool, error) {
 		fmt.Printf("__scene__\n")
 		fmt.Printf("  name: %v \n", scene.Name)
 
+		newScene := sh.NewScene(scene.Name)
+
 		for _, item := range scene.Sources {
 			// NOTE: Cover the case were we do need the child items as their own
 			//       item(s) with a zed.
@@ -587,18 +600,16 @@ func (sh *Show) CacheScenes() (bool, error) {
 			//       confined to OBS not so good design patterns and data modeling
 			//       architecture? .. :(
 
-			PrintItem(item)
-			parsedItem := ParseItem(item)
+			parsedItem := newScene.ParseItem(item)
 
 			if 0 < len(item.GroupChildren) {
 				for _, childItem := range item.GroupChildren {
 					PrintItem(childItem)
-					parsedChildItem := ParseItem(childItem)
+					parsedChildItem := parsedItem.ParseItem(childItem)
 					// NOTE: This was when we were putting all parsedChildItems in
 					//       the scene level items.
 					//items = append(items, parsedChildItem)
 					parsedChildItem.Parent = parsedItem
-					parsedItem.Items = append(parsedItem.Items, parsedChildItem)
 				}
 			}
 
@@ -614,7 +625,7 @@ func (sh *Show) CacheScenes() (bool, error) {
 			// TODO: Assign X/Y position value on item
 		}
 
-		sh.AddScene(
+		sh.CacheScene(
 			scene.Name,
 			items,
 			len(scene.Name) == len(apiResponse.CurrentScene) &&
@@ -705,8 +716,39 @@ func (scs Scenes) Exists(sceneName string) bool {
 	return scs.Name(sceneName) != nil
 }
 
+func (sh *Show) NewScene(name string) *Scene {
+	if sh.Scenes.Exists(name) {
+		fmt.Printf("Scene already exists, skipping (should update rly)\n")
+		return sh.Scenes.Name(name)
+	}
+	newScene := &Scene{
+		Show:      sh,
+		Name:      name,
+		Items:     Items{},
+		IsCurrent: false,
+	}
+
+	sh.Scenes = append(sh.Scenes, newScene)
+	return newScene
+}
+
+func (sc *Scene) AddItems(items Items) *Scene {
+	sc.Items = items
+	return sc
+}
+
+func (sc *Scene) Current() *Scene {
+	sc.IsCurrent = true
+	// TODO: Do an update over OBS ws API to make this actually true
+	return sc
+}
+
+// sh.NewScene("bumper").AddItems(items).Current() < would require a write
+
+// TODO: Decide if this all in one will be desirable to have after new
+//       functions
 //  Add can not be done like this bc of the data type pulled fro0m the API
-func (sh *Show) AddScene(name string, items Items, isCurrent bool) *Show {
+func (sh *Show) CacheScene(name string, items Items, isCurrent bool) *Show {
 	if sh.Scenes.Exists(name) {
 		fmt.Printf("Scene already exists, skipping (should update rly)\n")
 		return sh
@@ -770,7 +812,7 @@ func (sh Show) SetCurrentScene(sceneName string) error {
 //	//}
 //}
 
-func (sh Show) UpdateItem(item *Item) error {
+func (sh Show) UpdateItem(item Item) error {
 	// TODO:
 	//      expecting:
 	//        itemName string
@@ -780,8 +822,8 @@ func (sh Show) UpdateItem(item *Item) error {
 	itemParams := sceneitems.SetSceneItemPropertiesParams{
 		SceneName: item.Scene.Name,
 		Item:      &typedefs.Item{Name: item.Name},
-		Locked:    item.Locked,
-		Visible:   item.Visible,
+		Locked:    &item.Locked,
+		Visible:   &item.Visible,
 		//Bounds:    resp.Bounds,
 		//Crop:      resp.Crop,
 		//Position:  resp.Position,
@@ -789,7 +831,7 @@ func (sh Show) UpdateItem(item *Item) error {
 		//Scale:     resp.Scale,
 	}
 
-	_, err = sh.OBS.SceneItems.SetSceneItemProperties(&itemParams)
+	_, err := sh.OBS.SceneItems.SetSceneItemProperties(&itemParams)
 	return err
 }
 

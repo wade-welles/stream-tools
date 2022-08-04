@@ -135,13 +135,36 @@ func (t Toolkit) HandleWindowEvents() {
 					//       stored within item (for folders); and we have no real
 					//       way of making this determiniation reasonably well currently
 
-					if dynamicAvatar := scene["primary"].Item("dynamic avatar"); dynamicAvatar != nil {
-						fmt.Printf("dynamic avatar item found!")
+					dynamicAvatar := scene["primary"].Item("dynamic avatar")
+					staticAvatar := scene["primary"].Item("static avatar")
+
+					if dynamicAvatar.Visible {
+						staticAvatar.Print()
+						staticAvatar.Unhide()
+						staticAvatar.Unlock()
+						staticAvatar.Print()
+
+						fmt.Printf("---\n")
+
+						dynamicAvatar.Print()
+						dynamicAvatar.Hide()
+						dynamicAvatar.Lock()
+						dynamicAvatar.Print()
+					} else {
+						dynamicAvatar.Print()
+						dynamicAvatar.Unhide()
+						dynamicAvatar.Unlock()
 						dynamicAvatar.Print()
 
-					} else {
-						fmt.Printf("dynamic avatar item NOT found!")
+						fmt.Printf("---\n")
+
+						staticAvatar.Print()
+						staticAvatar.Hide()
+						staticAvatar.Lock()
+						staticAvatar.Print()
 					}
+
+					dynamicAvatar.Lock()
 
 					//scene["primary"].Transition() - also valid bc variadic
 
@@ -198,14 +221,14 @@ func (t Toolkit) HandleWindowEvents() {
 					fmt.Println("[chromium] active window?(%v)", t.X11.ActiveWindow())
 					t.X11.CacheActiveWindow()
 
-					//t.OBS.Show.Scenes.Name("content:bumper").Transition()
-					//time.Sleep(5 * time.Second)
-					// TODO: This one uses primary (and maybe it shouldnt but it does)
-					//       and it needs to be able to hide and unhide elements to work
-					//       so do this functionality REGARDLESs if you change it to
-					//       have its own scene (so we get the needed fucntionality of
-					//       hiding and unhiding)
-					//t.OBS.Show.Scenes.Name("content:primary").Transition()
+				//t.OBS.Show.Scenes.Name("content:bumper").Transition()
+				//time.Sleep(5 * time.Second)
+				// TODO: This one uses primary (and maybe it shouldnt but it does)
+				//       and it needs to be able to hide and unhide elements to work
+				//       so do this functionality REGARDLESs if you change it to
+				//       have its own scene (so we get the needed fucntionality of
+				//       hiding and unhiding)
+				//t.OBS.Show.Scenes.Name("content:primary").Transition()
 
 				// TODO:
 				// 	* Show [A RANDOM BUMPER] for X(5?) seconds

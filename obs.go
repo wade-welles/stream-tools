@@ -10,6 +10,7 @@ import (
 	goobs "github.com/andreykaipov/goobs"
 	events "github.com/andreykaipov/goobs/api/events"
 	requests "github.com/andreykaipov/goobs/api/requests"
+	sceneitems "github.com/andreykaipov/goobs/api/requests/scene_items"
 	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
 	sources "github.com/andreykaipov/goobs/api/requests/sources"
 	studiomode "github.com/andreykaipov/goobs/api/requests/studio_mode"
@@ -166,10 +167,27 @@ func (it Item) HasName(name string) bool {
 // NOTE: IsGroup would be the OBS naming
 func (it Item) IsFolder() bool { return (0 < len(it.Items)) }
 
-func (it *Item) Unlock() { it.Locked = false }
-func (it *Item) Lock()   { it.Locked = true }
-func (it *Item) Unhide() { it.Visible = false }
-func (it *Item) Hide()   { it.Visible = true }
+func (it Item) Update() error {
+
+}
+
+// TODO: This update requires us to do a write against the OBS WS API
+//       so the change would be reflected within OBS
+func (it *Item) Unlock() {
+	it.Locked = false
+}
+
+func (it *Item) Lock() {
+	it.Locked = true
+}
+
+func (it *Item) Unhide() {
+	it.Visible = true
+}
+
+func (it *Item) Hide() {
+	it.Visible = false
+}
 
 func (it Item) Print() {
 	fmt.Printf("item: \n")
@@ -239,7 +257,7 @@ func PrintItem(item typedefs.SceneItem) {
 //	fmt.Printf("    X: %v, Y: %v \n", it.X, it.Y)
 //}
 
-func ParseItem(item typedefs.SceneItem) *Item {
+func (sc *Scene) ParseItem(item typedefs.SceneItem) *Item {
 	// TODO: Not yet cahcing the scene pointers and show pointer (essentially no
 	// relationships at all atm)
 
@@ -247,11 +265,11 @@ func ParseItem(item typedefs.SceneItem) *Item {
 
 	// x, y is position of the sprite
 
-	return &Item{
-		//Items: Items{},
-		Id:   item.Id,
-		Name: item.Name,
-		Type: MarshalItemType(item.Type),
+	item := &Item{
+		Scene: sc,
+		Id:    item.Id,
+		Name:  item.Name,
+		Type:  MarshalItemType(item.Type),
 		Layer: Layer{
 			Visible:   item.Render,
 			Locked:    item.Locked,
@@ -270,6 +288,10 @@ func ParseItem(item typedefs.SceneItem) *Item {
 			},
 		},
 	}
+
+	sc.Items = append(sc.Items, item)
+
+	return item
 }
 
 type Items []*Item
@@ -731,6 +753,43 @@ func (sh Show) SetCurrentScene(sceneName string) error {
 		SceneName: sceneName,
 	}
 	_, err := sh.OBS.Scenes.SetCurrentScene(&sceneRequest)
+	return err
+}
+
+// TODO: Build update from OBS (since OBS has a UI for the time being)
+//func (sh Show) ItemAttributes() string {
+//	// GET / READ
+//	//itemParams := sceneitems.GetSceneItemPropertiesParams{
+//	//	Item:      &typedefs.Item{Name: item.Name},
+//	//	SceneName: item.Scene.Name,
+//	//}
+//
+//	//resp, err := sh.OBS.SceneItems.GetSceneItemProperties(&itemParams)
+//	//if err != nil {
+//	//	return err
+//	//}
+//}
+
+func (sh Show) UpdateItem(item *Item) error {
+	// TODO:
+	//      expecting:
+	//        itemName string
+	//        sceneName string
+
+	// SET / WRITE
+	itemParams := sceneitems.SetSceneItemPropertiesParams{
+		SceneName: item.Scene.Name,
+		Item:      &typedefs.Item{Name: item.Name},
+		Locked:    item.Locked,
+		Visible:   item.Visible,
+		//Bounds:    resp.Bounds,
+		//Crop:      resp.Crop,
+		//Position:  resp.Position,
+		//Rotation:  resp.Rotation,
+		//Scale:     resp.Scale,
+	}
+
+	_, err = sh.OBS.SceneItems.SetSceneItemProperties(&itemParams)
 	return err
 }
 

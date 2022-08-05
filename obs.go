@@ -1,6 +1,7 @@
 package obstools
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -171,6 +172,10 @@ func (it Item) Update() error {
 	return it.Scene.Show.UpdateItem(it)
 }
 
+func (it Item) Cache() error {
+	return it.Scene.Show.CacheItem(it.Scene.Name, it.Name)
+}
+
 // TODO: This update requires us to do a write against the OBS WS API
 //       so the change would be reflected within OBS
 func (it *Item) Unlock() {
@@ -183,6 +188,7 @@ func (it *Item) Lock() {
 
 func (it *Item) Unhide() {
 	it.Visible = true
+	it.Update()
 }
 
 func (it *Item) Hide() {
@@ -258,9 +264,23 @@ func PrintItem(item typedefs.SceneItem) {
 //}
 
 func (it *Item) ParseItem(item typedefs.SceneItem) *Item {
-	parsedChildItem := ParseItem(it.Scene, item)
-	parsedChildItem.Parent = it
-	it.Items = append(it.Items, parsedChildItem)
+	fmt.Printf("it.ParseItem(item typedefs.SceneItem) *Item\n")
+	if it == nil {
+		fmt.Printf("there is no receiver? receivers can be nil>????\n")
+	} else {
+		it.Print()
+		if it.Scene != nil {
+			fmt.Printf("scene: \n")
+			fmt.Printf("  name: %v \n", it.Scene.Name)
+		} else {
+			fmt.Printf("no scene found")
+			return nil
+		}
+
+		parsedChildItem := ParseItem(it.Scene, item)
+		parsedChildItem.Parent = it
+		it.Items = append(it.Items, parsedChildItem)
+	}
 	return it
 }
 
@@ -268,20 +288,12 @@ func (sc *Scene) ParseItem(item typedefs.SceneItem) *Item {
 	return ParseItem(sc, item)
 }
 
-func ParseItem(scene *Scene, item typedefs.SceneItem) *Item {
-	// TODO: Not yet cahcing the scene pointers and show pointer (essentially no
-	// relationships at all atm)
-
-	// cX is width of sprite, cY is height
-
-	// x, y is position of the sprite
-
-	it := &Item{
-		Scene: scene,
-		Id:    item.Id,
-		Name:  item.Name,
-		Type:  MarshalItemType(item.Type),
-		Layer: Layer{
+func ParseItem(scene *Scene, item typedefs.SceneItem) (cachedItem *Item) {
+	// TODO: Should be validation on if scene/item already exists
+	if cachedItem := scene.Item(item.Name); cachedItem != nil {
+		// TODO: Check if Id is what is used for order or not
+		cachedItem.Name = item.Name
+		cachedItem.Layer = Layer{
 			Visible:   item.Render,
 			Locked:    item.Locked,
 			Alignment: int(item.Alignment),
@@ -293,16 +305,41 @@ func ParseItem(scene *Scene, item typedefs.SceneItem) *Item {
 				Width:  item.Cx,
 				Height: item.Cy,
 			},
-			Source: Dimensions{
-				Width:  item.SourceCx,
-				Height: item.SourceCy,
+		}
+	} else {
+		// TODO: Not yet cahcing the scene pointers and show pointer (essentially no
+		// relationships at all atm)
+		// cX is width of sprite, cY is height
+		// x, y is position of the sprite
+
+		cachedItem = &Item{
+			Scene: scene,
+			Id:    item.Id,
+			Name:  item.Name,
+			Type:  MarshalItemType(item.Type),
+			Layer: Layer{
+				Visible:   item.Render,
+				Locked:    item.Locked,
+				Alignment: int(item.Alignment),
+				Position: Position{
+					X: item.X,
+					Y: item.Y,
+				},
+				Dimensions: Dimensions{
+					Width:  item.Cx,
+					Height: item.Cy,
+				},
+				Source: Dimensions{
+					Width:  item.SourceCx,
+					Height: item.SourceCy,
+				},
 			},
-		},
+		}
+
+		scene.Items = append(scene.Items, cachedItem)
 	}
 
-	scene.Items = append(scene.Items, it)
-
-	return it
+	return cachedItem
 }
 
 type Items []*Item
@@ -579,14 +616,13 @@ func (sh *Show) CacheScenes() (bool, error) {
 		return false, err
 	}
 
-	scenes := apiResponse.Scenes
+	for _, scene := range sh.Scenes {
+		scene.Cache()
+	}
 
 	items := Items{}
-	for _, scene := range scenes {
-		fmt.Printf("___________________________________________\n")
-		fmt.Printf("__scene__\n")
-		fmt.Printf("  name: %v \n", scene.Name)
-
+	sh.Scenes = Scenes{}
+	for _, scene := range apiResponse.Scenes {
 		newScene := sh.NewScene(scene.Name)
 
 		for _, item := range scene.Sources {
@@ -601,6 +637,12 @@ func (sh *Show) CacheScenes() (bool, error) {
 			//       architecture? .. :(
 
 			parsedItem := newScene.ParseItem(item)
+			if parsedItem == nil {
+				fmt.Printf("parsedItem from newScene.ParseItem(item)\n")
+
+			} else {
+				fmt.Printf("parsedItem != nil from newScene.ParseItem(item)\n")
+			}
 
 			if 0 < len(item.GroupChildren) {
 				for _, childItem := range item.GroupChildren {
@@ -609,7 +651,9 @@ func (sh *Show) CacheScenes() (bool, error) {
 					// NOTE: This was when we were putting all parsedChildItems in
 					//       the scene level items.
 					//items = append(items, parsedChildItem)
-					parsedChildItem.Parent = parsedItem
+					if parsedChildItem != nil {
+						parsedChildItem.Parent = parsedItem
+					}
 				}
 			}
 
@@ -743,25 +787,26 @@ func (sc *Scene) Current() *Scene {
 	return sc
 }
 
-// sh.NewScene("bumper").AddItems(items).Current() < would require a write
+func (sc *Scene) Cache() *Scene {
+	return sc.Show.CacheScene(sc.Name, sc.Items, sc.IsCurrent)
+}
 
-// TODO: Decide if this all in one will be desirable to have after new
-//       functions
-//  Add can not be done like this bc of the data type pulled fro0m the API
-func (sh *Show) CacheScene(name string, items Items, isCurrent bool) *Show {
-	if sh.Scenes.Exists(name) {
-		fmt.Printf("Scene already exists, skipping (should update rly)\n")
-		return sh
+func (sh *Show) CacheScene(name string, items Items, isCurrent bool) *Scene {
+	cachedScene := sh.Scene(name)
+	if cachedScene != nil {
+		cachedScene.Name = name
+		cachedScene.Items = items
+		cachedScene.IsCurrent = isCurrent
+	} else {
+		cachedScene := &Scene{
+			Show:      sh,
+			Name:      name,
+			Items:     items,
+			IsCurrent: isCurrent,
+		}
+		sh.Scenes = append(sh.Scenes, cachedScene)
 	}
-
-	fmt.Printf("scene: %v \n", name)
-	sh.Scenes = append(sh.Scenes, &Scene{
-		Show:      sh,
-		Name:      name,
-		Items:     items,
-		IsCurrent: isCurrent,
-	})
-	return sh
+	return cachedScene
 }
 
 // show.Scene("bumper").Transition()
@@ -800,17 +845,86 @@ func (sh Show) SetCurrentScene(sceneName string) error {
 
 // TODO: Build update from OBS (since OBS has a UI for the time being)
 //func (sh Show) ItemAttributes() string {
-//	// GET / READ
-//	//itemParams := sceneitems.GetSceneItemPropertiesParams{
-//	//	Item:      &typedefs.Item{Name: item.Name},
-//	//	SceneName: item.Scene.Name,
-//	//}
 //
-//	//resp, err := sh.OBS.SceneItems.GetSceneItemProperties(&itemParams)
-//	//if err != nil {
-//	//	return err
-//	//}
-//}
+
+func (sh Show) Scene(sceneName string) *Scene {
+	return sh.Scenes.Name(sceneName)
+}
+
+func (sh Show) CacheItem(sceneName, itemName string) error {
+
+	apiResponse, err := sh.OBS.Client.Scenes.GetSceneList()
+	if err != nil {
+		return err
+	}
+
+	//scenes := apiResponse.Scenes
+
+	//items := Items{}
+	var cachedScene *Scene
+	//var cachedItem *Item
+	for _, scene := range apiResponse.Scenes {
+		fmt.Printf("___________________________________________\n")
+		fmt.Printf("__scene__\n")
+		fmt.Printf("  name: %v \n", scene.Name)
+
+		//cachedScene := sh.Scene(scene.Name)
+		//if cachedScene == nil {
+		//	cachedScene := sh.NewScene(scene.Name)
+
+		//}
+
+		//cachedItem := cachedScene.Item(itemName)
+
+		if len(scene.Name) == len(sceneName) &&
+			scene.Name == sceneName {
+
+			for _, sceneItem := range scene.Sources {
+				if len(sceneItem.Name) == len(itemName) &&
+					sceneItem.Name == itemName {
+
+					cachedScene = sh.Scene(sceneName)
+					if cachedScene == nil {
+						cachedScene = sh.NewScene(scene.Name)
+
+					}
+					cachedItem := cachedScene.ParseItem(sceneItem)
+					if cachedItem == nil {
+						return errors.New("failed to cache item")
+					} else {
+						return nil
+					}
+				} else {
+					return errors.New("no item found")
+				}
+			}
+		}
+		return errors.New("no scene found")
+	}
+
+	/////////////////////////////////////////////////////
+
+	// GET / READ
+	//itemParams := sceneitems.GetSceneItemPropertiesParams{
+	//	Item:      &typedefs.Item{Name: itemName},
+	//	SceneName: sceneName,
+	//}
+
+	//apiResponse, err := sh.OBS.SceneItems.GetSceneItemProperties(&itemParams)
+
+	//cachedItem := sh.Scene(sceneName).Item(itemName)
+
+	//Bounds:    resp.Bounds,
+	//Crop:      resp.Crop,
+	//Position:  resp.Position,
+	//Rotation:  resp.Rotation,
+
+	// TODO: Take the API response and use it to update the local cache of
+	//       the item using our more complex and useful abstraction of
+	//       source or scene item
+
+	return err
+}
 
 func (sh Show) UpdateItem(item Item) error {
 	// TODO:

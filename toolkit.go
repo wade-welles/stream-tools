@@ -2,7 +2,6 @@ package obstools
 
 import (
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -61,22 +60,44 @@ func (t Toolkit) HandleWindowEvents() {
 	//}
 
 	fmt.Printf("iterating over SCENES to later do things like transition...\n")
-	scene := map[string]*Scene{}
-	for index, cachedScene := range t.OBS.Show.Scenes {
-		// TODO: We are getting multiple of each of the scenes, we need to do a
-		// confirmation of existing scene so we dont have duplicates; can even hash
-		// the name and maybe some other value to avoid string comparisons
-		fmt.Printf("Scene Index: %v\n", index)
-		fmt.Printf("Scene Name: %v\n", cachedScene.Name)
-		fmt.Printf("print each scene item with the visibility and locked status\n")
-		cachedSceneName := strings.Split(cachedScene.Name, "content:")
-		fmt.Printf("cachedSceneName: %v\n", cachedSceneName)
-		fmt.Printf("len(cachedSceneName)=%v\n", len(cachedSceneName))
-		if 0 < len(cachedSceneName) {
-			fmt.Printf("cachedSceneName[1]: %v\n", cachedSceneName[1])
-			scene[cachedSceneName[1]] = cachedScene
-		}
-	}
+	//scene := map[string]*Scene{}
+	//for index, cachedScene := range t.OBS.Show.Scenes {
+	//	// TODO: We are getting multiple of each of the scenes, we need to do a
+	//	// confirmation of existing scene so we dont have duplicates; can even hash
+	//	// the name and maybe some other value to avoid string comparisons
+	//	fmt.Printf("scene:\n")
+	//	fmt.Printf("  len(scene.Items)=(%v)\n", len(cachedScene.Items))
+	//	fmt.Printf("  scene_index: %v\n", index)
+	//	fmt.Printf("  scene_name: %v\n", cachedScene.Name)
+	//	fmt.Printf("  print neach scene item with the visibility and locked status\n")
+	//	cachedSceneName := strings.Split(cachedScene.Name, "content:")
+	//	fmt.Printf("  cached_scene_name: %v\n", cachedSceneName)
+	//	fmt.Printf("  len(cachedSceneName)=%v\n", len(cachedSceneName))
+	//	if 0 < len(cachedSceneName) {
+	//		fmt.Printf("  cachedSceneName[1]: %v\n", cachedSceneName[1])
+
+	//		//scene[cachedSceneName[1]] = cachedScene
+	//	}
+	//}
+
+	//fmt.Printf("how many scenes were loaded into the 'scene' map object?(%v)\n", len(scene))
+
+	//for sceneName, scene := range scene {
+	//	fmt.Printf("scene:\n")
+	//	fmt.Printf("  key:sceneName: %v\n", sceneName)
+	//	fmt.Printf("  value:scene: %v\n", scene)
+	//	fmt.Printf("  scene.name: %v\n", scene.Name)
+	//	fmt.Printf("  len(scene.Items): %v\n", len(scene.Items))
+	//	for index, item := range scene.Items {
+	//		fmt.Printf("\n\nitem:\n")
+	//		fmt.Printf("  index: %v\n", index)
+	//		if item != nil {
+	//			fmt.Printf("  name: %v\n", item.Name)
+	//		} else {
+	//			fmt.Printf(" item == nil :(")
+	//		}
+	//	}
+	//}
 
 	// NOTE: Incorrect way of doing this; but using it to create a functional demo
 	// quickly. This short polls and we would obviously want to take advantage of
@@ -86,7 +107,7 @@ func (t Toolkit) HandleWindowEvents() {
 	for {
 		select {
 		case <-tick:
-			fmt.Printf("ticky tocky...\n")
+			//fmt.Printf("ticky tocky...\n")
 			//activeWindowName := MarshalWindowName(name)
 
 			//fmt.Printf("marshalled window name (%v)\n", activeWindowName)
@@ -102,6 +123,9 @@ func (t Toolkit) HandleWindowEvents() {
 
 			//     has it changed to a valid value? *not just has the value chagned*
 
+			// TODO:
+			// on item static avatar it has show as NIL
+
 			fmt.Printf("current cached window: %v \n", t.X11.CurrentWindow)
 
 			if t.X11.HasActiveWindowChanged() {
@@ -109,131 +133,32 @@ func (t Toolkit) HandleWindowEvents() {
 				fmt.Printf("ACTIVE window CHANGED!\n")
 
 				switch t.X11.ActiveWindow() {
-				case Primary:
+				case Primary, Secondary:
 					fmt.Printf("[primary] active window?(%v) \n", t.X11.ActiveWindow())
 					t.X11.CacheActiveWindow()
 
-					// TODO: All of our work was to lay down foundation for
-					//       a more complex framework that creates this beautiful
-					//       API
-					// TODO: THis MUST update the scenes so that scenes correctly
-					//       have CURRENT status.
-
-					//t.OBS.Show.SetCurrentScene("content:bumper")
-
-					// TODO: Have a 3 to 5 second delay before transitioning to this view
-
-					// NOTE: These work
-					//if scene, ok := scene["bumper"]; ok {
-					//	scene.Transition(4 * time.Second)
-					//}
-					//if scene, ok := scene["primary"]; ok {
-					//	scene.Transition(4 * time.Second)
-					//}
-
-					// TODO: Using this we have discovered that items are not being
-					//       stored within item (for folders); and we have no real
-					//       way of making this determiniation reasonably well currently
-
-					dynamicAvatar := scene["primary"].Item("dynamic avatar")
-					staticAvatar := scene["primary"].Item("static avatar")
-
-					if dynamicAvatar.Visible {
-						staticAvatar.Print()
-						staticAvatar.Unhide()
-						staticAvatar.Unlock()
-						staticAvatar.Print()
-
-						fmt.Printf("---\n")
-
-						dynamicAvatar.Print()
-						dynamicAvatar.Hide()
-						dynamicAvatar.Lock()
-						dynamicAvatar.Print()
-					} else {
-						dynamicAvatar.Print()
-						dynamicAvatar.Unhide()
-						dynamicAvatar.Unlock()
-						dynamicAvatar.Print()
-
-						fmt.Printf("---\n")
-
-						staticAvatar.Print()
-						staticAvatar.Hide()
-						staticAvatar.Lock()
-						staticAvatar.Print()
+					time.Sleep(4 * time.Second)
+					if bumperScene, ok := t.OBS.Show.Scene("bumper"); ok {
+						bumperScene.Transition()
 					}
 
-					dynamicAvatar.Lock()
-
-					//scene["primary"].Transition() - also valid bc variadic
-
-					// TODO: We  need to put code ontop and hide chromium
-					//      so ability to hide/unhide items and guarantee
-					//      ALL items are being parsed into our cached objects
-
-					//bumperScene.Transition()
-					//t.OBS.Show.Scenes.Name("content:primary").Transition()
-					// TODO: Wait 5 (sleep)
-					// TODO: Maybe we can do like sc.Transition(seconds), default 0
-					// using variadic and only using first value if its there so it can
-					// be empty .Transition() or .Transition(5 * time.Second)
-					// this might be good for hide and lock so you can hide for 5 seconds
-					// for example which may end up making it way way way easier to
-					// script stuff which is very important
-
-					// TODO: Test transition to scene, then test hiding and unhiding.
-
-					// TODO:
-					// 	* Show [A RANDOM BUMPER] for X(5?) seconds
-
-					//	bumpers := []*Scene{}
-					// TODO: This was never actually checked if it was working or
-					//       if a real attempt on this functionality
-					//activeScene := t.OBS.Show.Scene("bumper+holdcard")
-
-					//activeScene.Transition()
-					//activeScene.Item("avatar").Hide()
-
-					//  * Switch to the primary content
-					//  * Mute any background music, and unmuting the mic
-
-					//	_, _ = client.Sources.ToggleMute(&sources.ToggleMuteParams{Source: name})
-
-				case Secondary:
-					fmt.Println("[secondary] active window?(%v)", t.X11.ActiveWindow())
-					t.X11.CacheActiveWindow()
-
-					// TODO: Important: This is doing same as above bc they are on the
-					// same scene; should merge this logic in a better way to reduce
-					// overall code
-
-					// TODO What is scene isnt found???
-					//t.OBS.Show.Scenes.Name("content:bumper").Transition()
-					//time.Sleep(5 * time.Second)
-					//t.OBS.Show.Scenes.Name("content:primary").Transition()
-					// TODO:
-					// 	* Show [A RANDOM BUMPER] for X(5?) seconds
-					//  * Switch to the primary content
-					//  * Mute any background music, and unmuting the mic
+					if primaryScene, ok := t.OBS.Show.Scene("primary"); ok {
+						primaryScene.Transition(4 * time.Second)
+					}
 
 				case Chromium:
 					fmt.Println("[chromium] active window?(%v)", t.X11.ActiveWindow())
 					t.X11.CacheActiveWindow()
 
-				//t.OBS.Show.Scenes.Name("content:bumper").Transition()
-				//time.Sleep(5 * time.Second)
-				// TODO: This one uses primary (and maybe it shouldnt but it does)
-				//       and it needs to be able to hide and unhide elements to work
-				//       so do this functionality REGARDLESs if you change it to
-				//       have its own scene (so we get the needed fucntionality of
-				//       hiding and unhiding)
-				//t.OBS.Show.Scenes.Name("content:primary").Transition()
+					time.Sleep(4 * time.Second)
+					if bumperScene, ok := t.OBS.Show.Scene("bumper"); ok {
+						bumperScene.Transition()
+					}
 
-				// TODO:
-				// 	* Show [A RANDOM BUMPER] for X(5?) seconds
-				//  * Switch to the chrome window
-				//  * Mute any background music, and unmuting the mic
+					if primaryScene, ok := t.OBS.Show.Scene("primary"); ok {
+						primaryScene.Transition(4 * time.Second)
+						// TODO: hide the vim terminal and unhide chrome
+					}
 
 				default: // UndefinedName
 					// TODO: We should never allow this condition to ever occur, and by
@@ -246,6 +171,65 @@ func (t Toolkit) HandleWindowEvents() {
 			} else {
 				fmt.Printf("no ACTIVE window change\n")
 			}
+
+			t.AvatarToggle()
+		}
+	}
+}
+
+//func (sh Show) ToggleItemVisibility(item *Item) (error, bool) {
+//	// TODO: Pretty sure we actually dont need to do this since
+//	//       we are interacting with
+//	cachedItem := sh.Scene(item.Scene.Name).Item(item.Name)
+//
+//	if cachedItem.Visible {
+//		return cachedItem.Hide()
+//	} else {
+//		return cachedItem.Unhide()
+//	}
+//}
+
+//func (sh Show) ToggleItemLock(item *Item) (error, bool) {
+//	cachedItem := sh.Scene(item.Scene.Name).Item(item.Name)
+//
+//	if cachedItem.Locked {
+//		return cachedItem.Unlock()
+//	} else {
+//		return cachedItem.Lock()
+//	}
+//}
+
+func (t Toolkit) AvatarToggle() {
+	if primaryScene, ok := t.OBS.Show.Scene("primary"); ok {
+
+		dynamicAvatar, _ := primaryScene.Item("dynamic avatar")
+		staticAvatar, _ := primaryScene.Item("static avatar")
+
+		//primaryScene.Update()
+		//primaryScene.Cache()
+
+		//dynamicAvatar.Update()
+		//dynamicAvatar.Cache()
+
+		if dynamicAvatar.Visible {
+			staticAvatar.Print()
+			staticAvatar.Unhide()
+			staticAvatar.Print()
+			fmt.Printf("---\n")
+
+			dynamicAvatar.Print()
+			dynamicAvatar.Hide()
+			dynamicAvatar.Print()
+		} else {
+			dynamicAvatar.Print()
+			dynamicAvatar.Unhide()
+			dynamicAvatar.Print()
+
+			fmt.Printf("---\n")
+
+			staticAvatar.Print()
+			staticAvatar.Hide()
+			staticAvatar.Print()
 		}
 	}
 }

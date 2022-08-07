@@ -170,14 +170,68 @@ func (it Item) HasName(name string) bool {
 func (it Item) IsFolder() bool { return (0 < len(it.Items)) }
 
 func (it Item) Update() (Item, bool) {
-	return it.Scene.Show.UpdateItem(it)
+	itemParams := sceneitems.SetSceneItemPropertiesParams{
+		SceneName: it.Scene.Name,
+		Item:      &typedefs.Item{Name: it.Name},
+		Locked:    &it.Locked,
+		Visible:   &it.Visible,
+		// TODO: Eventually Update these values too
+		//Bounds:    resp.Bounds,
+		//Crop:      resp.Crop,
+		//Position:  resp.Position,
+		//Rotation:  resp.Rotation,
+		//Scale:     resp.Scale,
+	}
+
+	_, err := it.Scene.Show.OBS.SceneItems.SetSceneItemProperties(&itemParams)
+	return it, err != nil
 }
 
 // TODO: Consider passing up the error instead of Item but this
 //       currently matches
 func (it *Item) Cache() (*Item, bool) {
-	return it.Scene.Show.CacheItem(it.Scene.Name, it.Name)
+	if apiResponse, err := it.Scene.Show.OBS.Client.Scenes.GetSceneList(); err == nil {
+		for _, scene := range apiResponse.Scenes {
+			if it.Scene.HasName(scene.Name) {
+				for _, sceneItem := range scene.Sources {
+					if it.HasName(sceneItem.Name) {
+						if parsedItem, ok := ParseItem(it.Scene, sceneItem); ok {
+							it.Id = parsedItem.Id // May not be necessary if static
+							it.Parent = parsedItem.Parent
+							it.Items = parsedItem.Items
+							it.Scene = parsedItem.Scene
+							return it, true
+						}
+					}
+				}
+			}
+		}
+	}
+	return it, false
+	//return errors.New("no scene found")
 }
+
+/////////////////////////////////////////////////////
+// TODO: Rewrite Item.Cache() with this below??? Bc our going through
+//       scenes is kinda silly
+// GET / READ
+//itemParams := sceneitems.GetSceneItemPropertiesParams{
+//	Item:      &typedefs.Item{Name: itemName},
+//	SceneName: sceneName,
+//}
+
+//apiResponse, err := sh.OBS.SceneItems.GetSceneItemProperties(&itemParams)
+
+//cachedItem := sh.Scene(sceneName).Item(itemName)
+
+//Bounds:    resp.Bounds,
+//Crop:      resp.Crop,
+//Position:  resp.Position,
+//Rotation:  resp.Rotation,
+
+// TODO: Take the API response and use it to update the local cache of
+//       the item using our more complex and useful abstraction of
+//       source or scene item
 
 // TODO: This update requires us to do a write against the OBS WS API
 //       so the change would be reflected within OBS
@@ -273,12 +327,20 @@ func PrintItem(item typedefs.SceneItem) {
 //}
 
 func (it *Item) ParseItem(item typedefs.SceneItem) (*Item, bool) {
-	return ParseItem(it.Scene, item)
+	if parsedItem, ok := ParseItem(it.Scene, item); ok {
+		it.Items = append(it.Items, parsedItem)
+		return parsedItem, true
+	}
+	return nil, false
 }
 
 // NOTE: Alias
 func (sc *Scene) ParseItem(item typedefs.SceneItem) (*Item, bool) {
-	return ParseItem(sc, item)
+	if parsedItem, ok := ParseItem(sc, item); ok {
+		sc.Items = append(sc.Items, parsedItem)
+		return parsedItem, true
+	}
+	return nil, false
 }
 
 func ParseItem(scene *Scene, item typedefs.SceneItem) (*Item, bool) {
@@ -718,12 +780,6 @@ func (sh *Show) NewScene(name string) (*Scene, bool) {
 	return newScene, true
 }
 
-//func (sc *Scene) AddItems(items Items) *Scene {
-//	sc.Items = items
-//	sc.Update()
-//	return sc
-//}
-
 // TODO: The OBS ws api should be interacted with through Update() alone
 //       and not scattered through the code so its really hard to maintain
 func (sc *Scene) Current() error {
@@ -820,100 +876,6 @@ func (sh Show) Scene(sceneName string) (*Scene, bool) {
 
 // TODO: If we don't pass up error then we will fail to provide
 //       developers using our library useful errors
-func (sh Show) CacheItem(sceneName, itemName string) (*Item, bool) {
-	apiResponse, err := sh.OBS.Client.Scenes.GetSceneList()
-	if err != nil {
-		return nil, false
-	}
-
-	cachedScene, ok := sh.Scene(sceneName)
-	if !ok {
-		cachedScene, _ = sh.NewScene(sceneName)
-		// TODO: What should occur here is we MUST create the scene,
-		//       well ONLY if it actually exists in the remote scenelist
-	}
-
-	//scenes := apiResponse.Scenes
-
-	//items := Items{}
-	//var cachedItem *Item
-	for _, scene := range apiResponse.Scenes {
-		fmt.Printf("___________________________________________\n")
-		fmt.Printf("__scene__\n")
-		fmt.Printf("  name: %v \n", scene.Name)
-
-		//cachedScene := sh.Scene(scene.Name)
-		//if cachedScene == nil {
-		//	cachedScene := sh.NewScene(scene.Name)
-
-		//}
-
-		//cachedItem := cachedScene.Item(itemName)
-
-		if cachedScene.HasName(scene.Name) {
-			for _, sceneItem := range scene.Sources {
-				if len(sceneItem.Name) == len(itemName) &&
-					sceneItem.Name == itemName {
-					cachedItem, _ := cachedScene.Item(sceneItem.Name)
-					// TODO: If no cached item, create it (important
-
-					fmt.Printf("=====>running ParseItem on cachedScene===>\n")
-					fmt.Printf("cachedItem: %v \n", cachedItem)
-					cachedScene.ParseItem(sceneItem)
-
-				}
-			}
-		}
-		return nil, false
-		//return errors.New("no scene found")
-	}
-
-	/////////////////////////////////////////////////////
-
-	// GET / READ
-	//itemParams := sceneitems.GetSceneItemPropertiesParams{
-	//	Item:      &typedefs.Item{Name: itemName},
-	//	SceneName: sceneName,
-	//}
-
-	//apiResponse, err := sh.OBS.SceneItems.GetSceneItemProperties(&itemParams)
-
-	//cachedItem := sh.Scene(sceneName).Item(itemName)
-
-	//Bounds:    resp.Bounds,
-	//Crop:      resp.Crop,
-	//Position:  resp.Position,
-	//Rotation:  resp.Rotation,
-
-	// TODO: Take the API response and use it to update the local cache of
-	//       the item using our more complex and useful abstraction of
-	//       source or scene item
-
-	return nil, false
-}
-
-func (sh Show) UpdateItem(item Item) (Item, bool) {
-	// TODO:
-	//      expecting:
-	//        itemName string
-	//        sceneName string
-
-	// SET / WRITE
-	itemParams := sceneitems.SetSceneItemPropertiesParams{
-		SceneName: item.Scene.Name,
-		Item:      &typedefs.Item{Name: item.Name},
-		Locked:    &item.Locked,
-		Visible:   &item.Visible,
-		//Bounds:    resp.Bounds,
-		//Crop:      resp.Crop,
-		//Position:  resp.Position,
-		//Rotation:  resp.Rotation,
-		//Scale:     resp.Scale,
-	}
-
-	_, err := sh.OBS.SceneItems.SetSceneItemProperties(&itemParams)
-	return item, err != nil
-}
 
 // obs.PreviewScene("name")
 

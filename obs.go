@@ -804,10 +804,10 @@ func (sc *Scene) Current() error {
 	return err
 }
 
-func (sc Scene) Update() (*Scene, bool) {
+func (sc Scene) Update() bool {
 	// TODO: No real easy way to do this unless perhaps updating scene
 	//       list at once or deleting and re-creating?
-	return sc, false
+	return false
 }
 
 // TODO:

@@ -67,23 +67,21 @@ func (t Toolkit) HandleWindowEvents() {
 			//     should only be checking against the other options, maybe even
 			//     have like state-machine style pre-defined transitions
 
-			//     has it changed to a valid value? *not just has the value chagned*
+			//  * has it changed to a valid value? *not just has the value chagned*
 
 			// TODO:
 			// on item static avatar it has show as NIL
 
 			if t.X11.HasActiveWindowChanged() {
 				switch t.X11.ActiveWindow() {
+
 				case Primary, Secondary:
+					// TODO: Check if the current scene is primary already
+					//       and if it is then skip it; ez pz
+
 					fmt.Printf("[primary+secondary] active window?(%v)\n", t.X11.ActiveWindow())
 					t.X11.CacheActiveWindow()
 					time.Sleep(4 * time.Second)
-
-					fmt.Printf("t: %v\n", t)
-					fmt.Printf("t.OBS: %v\n", t.OBS)
-					fmt.Printf("t.OBS.Show: %v\n", t.OBS.Show)
-					fmt.Printf("t.OBS.Show.Scenes: %v\n", t.OBS.Show.Scenes)
-					fmt.Printf("len(t.OBS.Show.Scenes): %v\n", len(t.OBS.Show.Scenes))
 
 					if bumperScene, ok := t.OBS.Show.Scene("content:bumper"); ok {
 						fmt.Printf("bumperScene.Name: %v\n", bumperScene.Name)
@@ -94,6 +92,15 @@ func (t Toolkit) HandleWindowEvents() {
 
 					if primaryScene, ok := t.OBS.Show.Scene("content:primary"); ok {
 						primaryScene.Transition(4 * time.Second)
+
+						if vimWindow, ok := primaryScene.Item("VIM"); ok {
+							vimWindow.Unhide().Lock().Update()
+						}
+
+						if chromiumWindow, ok := primaryScene.Item("CHROMIUM"); ok {
+							chromiumWindow.Hide().Update()
+						}
+
 						fmt.Printf("attempting to transition to primary\n")
 					} else {
 						fmt.Printf("failed to transition to primary\n")
@@ -103,8 +110,10 @@ func (t Toolkit) HandleWindowEvents() {
 					t.X11.CacheActiveWindow()
 
 					time.Sleep(4 * time.Second)
-					if bumperScene, ok := t.OBS.Show.Scene("bumper:content"); ok {
+					if bumperScene, ok := t.OBS.Show.Scene("content:bumper"); ok {
 						fmt.Printf("attempting to transition to bumper\n")
+						// TODO: Add code so that bumper background is randomized,
+						//       OR changing OR randomly switching between x # of bgs
 						bumperScene.Transition()
 					} else {
 						fmt.Printf("failed to transition to bumper\n")
@@ -113,7 +122,15 @@ func (t Toolkit) HandleWindowEvents() {
 					if primaryScene, ok := t.OBS.Show.Scene("content:primary"); ok {
 						fmt.Printf("attempting to transition to primary\n")
 						primaryScene.Transition(4 * time.Second)
-						// TODO: hide the vim terminal and unhide chrome
+
+						if vimWindow, ok := primaryScene.Item("VIM"); ok {
+							vimWindow.Hide().Lock().Update()
+						}
+
+						if chromiumWindow, ok := primaryScene.Item("CHROMIUM"); ok {
+							chromiumWindow.Unhide().Update()
+						}
+
 					} else {
 						fmt.Printf("failed to transition to primary\n")
 					}
@@ -172,22 +189,22 @@ func (t Toolkit) AvatarToggle() {
 
 		if dynamicAvatar.Visible {
 			staticAvatar.Print()
-			staticAvatar.Unhide()
+			staticAvatar.Unhide().Update()
 			staticAvatar.Print()
 			fmt.Printf("---\n")
 
 			dynamicAvatar.Print()
-			dynamicAvatar.Hide()
+			dynamicAvatar.Hide().Update()
 			dynamicAvatar.Print()
 		} else {
 			dynamicAvatar.Print()
-			dynamicAvatar.Unhide()
+			dynamicAvatar.Unhide().Update()
 			dynamicAvatar.Print()
 
 			fmt.Printf("---\n")
 
 			staticAvatar.Print()
-			staticAvatar.Hide()
+			staticAvatar.Hide().Update()
 			staticAvatar.Print()
 		}
 	}

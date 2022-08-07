@@ -116,6 +116,8 @@ func MarshalItemType(itemType string) ItemType {
 }
 
 type Dimensions struct {
+	Position
+
 	Height float64
 	Width  float64
 }
@@ -255,29 +257,25 @@ func (it *Item) Cache() (*Item, bool) {
 //       so the change would be reflected within OBS
 func (it *Item) Unlock() *Item {
 	it.Layer.Locked = false
-	it.Update()
 	return it
 }
 
 func (it *Item) Lock() *Item {
 	it.Layer.Locked = true
-	it.Update()
 	return it
 }
 
 func (it *Item) Unhide() *Item {
 	it.Layer.Visible = true
-	it.Update()
 	return it
 }
 
 func (it *Item) Hide() *Item {
 	it.Layer.Visible = false
-	it.Update()
 	return it
 }
 
-func (it Item) Print() {
+func (it Item) Print() Item {
 	fmt.Printf("item: \n")
 	fmt.Printf("  id: %v \n", it.Id)
 	fmt.Printf("  name: %v \n", it.Name)
@@ -288,61 +286,8 @@ func (it Item) Print() {
 	fmt.Printf("  visible: %v \n", it.Visible)
 	fmt.Printf("  len(items): %v \n", len(it.Items))
 	fmt.Printf("  scene(*): %v \n", it.Scene)
+	return it
 }
-
-func PrintItem(item typedefs.SceneItem) {
-	fmt.Printf("__item__\n")
-	fmt.Printf("  id: %v \n", item.Id)
-	fmt.Printf("  type: %v \n", item.Type)
-	fmt.Printf("  name: %v \n", item.Name)
-	fmt.Printf("  hidden: %v \n", !item.Render)
-	fmt.Printf("  locked: %v \n", item.Locked)
-	// Group
-	fmt.Printf("  _group_\n")
-	fmt.Printf("    is_group: %v \n", len(item.GroupChildren) != 0)
-	fmt.Printf("    parent_group_name: %v \n", item.ParentGroupName)
-	fmt.Printf("    group_children: \n")
-	fmt.Printf("      count: %v \n", len(item.GroupChildren))
-	fmt.Printf("      children: %v \n", item.GroupChildren)
-	// Audio
-	fmt.Printf("  _audio_\n")
-	fmt.Printf("    muted: %v \n", item.Muted)
-	fmt.Printf("    volume: %v \n", item.Volume)
-	// TODO: 3 difference coordinates? seems silly
-	fmt.Printf("  _position_\n")
-	fmt.Printf("    alignment: %v \n", item.Alignment)
-	fmt.Printf("    c_x: %v, c_y: %v \n", item.Cx, item.Cy)
-	fmt.Printf("    source_c_x: %v, source_c_y: %v \n", item.SourceCx, item.SourceCy)
-	fmt.Printf("    X: %v, Y: %v \n", item.X, item.Y)
-}
-
-// TODO: Look at OUR Item type and redo the print function using our
-//       simplified type
-//func (it Item) Print() {
-//	fmt.Printf("__item__\n")
-//	fmt.Printf("  id: %v \n", it.Id)
-//	fmt.Printf("  type: %v \n", it.Type)
-//	fmt.Printf("  name: %v \n", it.Name)
-//	fmt.Printf("  hidden: %v \n", !it.Render)
-//	fmt.Printf("  locked: %v \n", it.Locked)
-//	// Group
-//	fmt.Printf("  _group_\n")
-//	fmt.Printf("    is_group: %v \n", len(it.GroupChildren) != 0)
-//	fmt.Printf("    parent_group_name: %v \n", it.ParentGroupName)
-//	fmt.Printf("    group_children: \n")
-//	fmt.Printf("      count: %v \n", len(it.GroupChildren))
-//	fmt.Printf("      children: %v \n", it.GroupChildren)
-//	// Audio
-//	fmt.Printf("  _audio_\n")
-//	fmt.Printf("    muted: %v \n", it.Muted)
-//	fmt.Printf("    volume: %v \n", it.Volume)
-//	// TODO: 3 difference coordinates? seems silly
-//	fmt.Printf("  _position_\n")
-//	fmt.Printf("    alignment: %v \n", it.Alignment)
-//	fmt.Printf("    c_x: %v, c_y: %v \n", it.Cx, it.Cy)
-//	fmt.Printf("    source_c_x: %v, source_c_y: %v \n", it.SourceCx, it.SourceCy)
-//	fmt.Printf("    X: %v, Y: %v \n", it.X, it.Y)
-//}
 
 func (it *Item) ParseItem(item typedefs.SceneItem) (*Item, bool) {
 	if parsedItem, ok := ParseItem(it.Scene, item); ok {
@@ -359,6 +304,26 @@ func (sc *Scene) ParseItem(item typedefs.SceneItem) (*Item, bool) {
 		return parsedItem, true
 	}
 	return nil, false
+}
+
+func (it *Item) ToggleVisibility() bool {
+	var ok bool
+	if it.Visible {
+		_, ok = it.Hide().Update()
+	} else {
+		_, ok = it.Unhide().Update()
+	}
+	return ok
+}
+
+func (it *Item) ToggleLock() bool {
+	var ok bool
+	if it.Locked {
+		_, ok = it.Unlock().Update()
+	} else {
+		_, ok = it.Lock().Update()
+	}
+	return ok
 }
 
 func ParseItem(scene *Scene, item typedefs.SceneItem) (*Item, bool) {
@@ -469,11 +434,15 @@ type Layer struct {
 	Visible   bool
 	Locked    bool
 	Alignment int
+	Rotation  float64
 	Position
 	Dimensions
 	Source Dimensions
 }
 
+// TODO: Better track Current scene (its what is transitioned to last, we
+//       ideally will have a log like system, or at least dates) and get
+//       rid of this bool below bc its bad 4 rlly
 type Scene struct {
 	Layer
 	Show        *Show
@@ -482,16 +451,6 @@ type Scene struct {
 	IsPreviewed bool
 	Items       Items
 	OBSObject   typedefs.Scene
-}
-
-func (sc *Scene) Unlock() {
-	sc.Locked = false
-	sc.Update()
-}
-
-func (sc *Scene) Lock() {
-	sc.Locked = true
-	sc.Update()
 }
 
 func (its Items) Unlocked() (unlockedItems Items) {
@@ -503,11 +462,6 @@ func (its Items) Unlocked() (unlockedItems Items) {
 	return unlockedItems
 }
 
-// items.LockedItems()
-// scenes.LockedScenes()
-
-// scenes.Locked()
-// items.Locked()
 func (its Items) Locked() (lockedItems Items) {
 	for _, item := range its {
 		if item.Locked {
@@ -555,45 +509,7 @@ func (sc Scene) Item(name string) (*Item, bool) {
 }
 
 func (sc *Scene) HasName(name string) bool {
-	return sc != nil && len(sc.Name) == len(name) && sc.Name == name
-}
-
-func (scs Scenes) Locked() (locked Scenes) {
-	for _, scene := range scs {
-		if scene.Locked {
-			locked = append(locked, scene)
-		}
-	}
-	return locked
-}
-
-// scenes.Unlocked().First()
-func (scs Scenes) Unlocked() (unlocked Scenes) {
-	for _, scene := range scs {
-		if !scene.Locked {
-			unlocked = append(unlocked, scene)
-		}
-	}
-	return unlocked
-}
-
-// scenes.Visible().Size()
-func (scs Scenes) Visible() (visible Scenes) {
-	for _, scene := range scs {
-		if scene.Visible {
-			visible = append(visible, scene)
-		}
-	}
-	return visible
-}
-
-func (scs Scenes) Hidden() (hidden Scenes) {
-	for _, scene := range scs {
-		if !scene.Visible {
-			hidden = append(hidden, scene)
-		}
-	}
-	return hidden
+	return len(sc.Name) == len(name) && sc.Name == name
 }
 
 type Scenes []*Scene
@@ -609,6 +525,12 @@ type Show struct {
 	OBS    *OBS
 	Name   string
 	Scenes Scenes
+
+	// Profile
+	// All items?
+	// Current Scene
+	// Current Preview
+	// History/Log of bumpers played (bgs used)
 
 	// NOTE: Ideally we keep the typedefs.Scene in a linked list for better
 	// interactions
@@ -695,8 +617,6 @@ func (obs OBS) Events() {
 
 // TODO: Switch to Scene
 
-// TODO: Toggle Visibility on element(source) in scene
-
 // TODO: List Scenes
 
 /////////////////////////////////////////////////////////////
@@ -705,15 +625,17 @@ func (obs OBS) Events() {
 //	return apiResponse.Scenes, err
 //}
 
-//func (obs *OBS) CurrentScene() (string, error) {
-//	apiResponse, err := obs.Client.Scenes.GetCurrentScene()
-//	if err == nil {
-//		obs.Show.CurrentScene = apiResponse.CurrentScene
-//	}
-//	//return obs.Show.CurrentScene
-//	return apiResponse.CurrentScene, err
-//
-//}
+func (sh Show) CurrentScene() *Scene {
+	return sh.Scenes.Current()
+
+	//apiResponse, err := obs.Client.Scenes.GetCurrentScene()
+	//if err == nil {
+	//	obs.Show.CurrentScene = apiResponse.CurrentScene
+	//}
+	//return obs.Show.CurrentScene
+	//return apiResponse.CurrentScene, err
+
+}
 
 // NOTE API we should aim for should use linked lists and then we can make our
 // own scene type that ahs methods like transition.
@@ -797,9 +719,11 @@ func (sh *Show) NewScene(name string) (*Scene, bool) {
 //       and not scattered through the code so its really hard to maintain
 func (sc *Scene) Current() error {
 	sc.IsCurrent = true
+
 	r := scenes.SetCurrentSceneParams{
 		SceneName: sc.Name,
 	}
+
 	_, err := sc.Show.OBS.Scenes.SetCurrentScene(&r)
 	return err
 }
@@ -807,12 +731,17 @@ func (sc *Scene) Current() error {
 func (sc Scene) Update() bool {
 	// TODO: No real easy way to do this unless perhaps updating scene
 	//       list at once or deleting and re-creating?
+	//         Almost certainly want to use delete and recreate since
+	//         no clear edit of Scene; just item
 	return false
 }
 
 // TODO:
 //   type GetSceneItemListParams (goobs) to request the []*SceneItem
 func (sc *Scene) Cache() (*Scene, bool) {
+	// GetSceneItemPropertiesParams represents the params body for the "GetSceneItemProperties" request.
+	// Gets the scene specific properties of the specified source item.
+
 	if apiResponse, err := sc.Show.OBS.Client.Scenes.GetSceneList(); err == nil {
 		for _, scene := range apiResponse.Scenes {
 			if sc.HasName(scene.Name) {
@@ -837,7 +766,9 @@ func (sc Scene) Transition(sleepDuration ...time.Duration) error {
 }
 
 func (sh Show) SceneNames() (sceneNames []string) {
-
+	for _, scene := range sh.Scenes {
+		sceneNames = append(sceneNames, scene.Name)
+	}
 	return sceneNames
 }
 
@@ -998,3 +929,12 @@ type Audio struct {
 //		//os.Exit(0)
 //	}
 //}
+
+// ?? Uses own SceneItem (WITH unique info? different?)
+//	sceneItemsParams := sceneitems.GetSceneItemListParams{
+//		SceneName: sc.Name,
+//	}
+//	apiResponse, err := sc.Show.OBS.SceneItems.GetSceneItemProperties(&sceneItemsParams)
+//	if err != nil {
+//		return err
+//	}

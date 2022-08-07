@@ -34,7 +34,7 @@ func NewToolkit() Toolkit {
 		Name:   "she hacked you",
 		Scenes: Scenes{},
 	}
-	toolkit.OBS.Show.CacheScenes()
+	//toolkit.OBS.Show.CacheScenes()
 	toolkit.X11.InitActiveWindow()
 	return toolkit
 }
@@ -138,26 +138,45 @@ func (t Toolkit) HandleWindowEvents() {
 					t.X11.CacheActiveWindow()
 
 					time.Sleep(4 * time.Second)
-					if bumperScene, ok := t.OBS.Show.Scene("bumper"); ok {
+
+					bumperScene, ok := t.OBS.Show.Scene("content:bumper")
+					if bumperScene != nil {
+						fmt.Printf("bumperScene.Name: %v\n", bumperScene.Name)
+					} else {
+						fmt.Printf("bumperScene: %v\n", bumperScene)
+					}
+
+					if ok {
+						fmt.Printf("attempting to transition to bumper\n")
 						bumperScene.Transition()
+					} else {
+						fmt.Printf("failed to transition to bumper\n")
 					}
 
-					if primaryScene, ok := t.OBS.Show.Scene("primary"); ok {
+					if primaryScene, ok := t.OBS.Show.Scene("content:primary"); ok {
 						primaryScene.Transition(4 * time.Second)
+						fmt.Printf("attempting to transition to primary\n")
+					} else {
+						fmt.Printf("failed to transition to primary\n")
 					}
-
 				case Chromium:
-					fmt.Println("[chromium] active window?(%v)", t.X11.ActiveWindow())
+					fmt.Printf("[chromium] active window?(%v)\n", t.X11.ActiveWindow())
 					t.X11.CacheActiveWindow()
 
 					time.Sleep(4 * time.Second)
-					if bumperScene, ok := t.OBS.Show.Scene("bumper"); ok {
+					if bumperScene, ok := t.OBS.Show.Scene("bumper:content"); ok {
+						fmt.Printf("attempting to transition to bumper\n")
 						bumperScene.Transition()
+					} else {
+						fmt.Printf("failed to transition to bumper\n")
 					}
 
-					if primaryScene, ok := t.OBS.Show.Scene("primary"); ok {
+					if primaryScene, ok := t.OBS.Show.Scene("content:primary"); ok {
+						fmt.Printf("attempting to transition to primary\n")
 						primaryScene.Transition(4 * time.Second)
 						// TODO: hide the vim terminal and unhide chrome
+					} else {
+						fmt.Printf("failed to transition to primary\n")
 					}
 
 				default: // UndefinedName
@@ -172,7 +191,7 @@ func (t Toolkit) HandleWindowEvents() {
 				fmt.Printf("no ACTIVE window change\n")
 			}
 
-			t.AvatarToggle()
+			//t.AvatarToggle()
 		}
 	}
 }
@@ -200,7 +219,7 @@ func (t Toolkit) HandleWindowEvents() {
 //}
 
 func (t Toolkit) AvatarToggle() {
-	if primaryScene, ok := t.OBS.Show.Scene("primary"); ok {
+	if primaryScene, ok := t.OBS.Show.Scene("content:primary"); ok {
 
 		dynamicAvatar, _ := primaryScene.Item("dynamic avatar")
 		staticAvatar, _ := primaryScene.Item("static avatar")

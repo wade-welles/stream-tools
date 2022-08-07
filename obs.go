@@ -3,7 +3,6 @@ package obstools
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"time"
 
 	// OBS
@@ -12,7 +11,6 @@ import (
 	requests "github.com/andreykaipov/goobs/api/requests"
 	sceneitems "github.com/andreykaipov/goobs/api/requests/scene_items"
 	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
-	sources "github.com/andreykaipov/goobs/api/requests/sources"
 	studiomode "github.com/andreykaipov/goobs/api/requests/studio_mode"
 	typedefs "github.com/andreykaipov/goobs/api/typedefs"
 )
@@ -77,6 +75,7 @@ const (
 	UnknownType ItemType = iota
 	InputType
 	FilterType
+	FolderType
 	TransitionType
 	SceneType
 )
@@ -85,6 +84,8 @@ func (itt ItemType) String() string {
 	switch itt {
 	case InputType:
 		return "input"
+	case FolderType:
+		return "folder"
 	case FilterType:
 		return "filter"
 	case TransitionType:
@@ -146,7 +147,6 @@ type Item struct {
 	Items  Items
 
 	Scene *Scene
-	Show  *Show
 }
 
 type Position struct {
@@ -163,7 +163,10 @@ func (it Item) HasName(name string) bool {
 //       useless to us, it may cause issues in the future since there
 //       is no simple way to switch between types beyond deleting and
 //       recreating
-// NOTE: IsGroup would be the OBS naming
+
+// NOTE: Reconcile the fact that this exists and the type exists
+//       and they wont be the same
+
 func (it Item) IsFolder() bool { return (0 < len(it.Items)) }
 
 func (it Item) Update() (Item, bool) {
@@ -213,7 +216,6 @@ func (it Item) Print() {
 	fmt.Printf("  visible: %v \n", it.Visible)
 	fmt.Printf("  len(items): %v \n", len(it.Items))
 	fmt.Printf("  scene(*): %v \n", it.Scene)
-	fmt.Printf("  show(*): %v \n", it.Show)
 }
 
 func PrintItem(item typedefs.SceneItem) {
@@ -270,39 +272,51 @@ func PrintItem(item typedefs.SceneItem) {
 //	fmt.Printf("    X: %v, Y: %v \n", it.X, it.Y)
 //}
 
-func (it *Item) ParseItem(item typedefs.SceneItem) *Item {
-	fmt.Printf("it.ParseItem(item typedefs.SceneItem) *Item\n")
-	if it == nil {
-		fmt.Printf("there is no receiver? receivers can be nil>????\n")
-	} else {
-		it.Print()
-		if it.Scene != nil {
-			fmt.Printf("scene: \n")
-			fmt.Printf("  name: %v \n", it.Scene.Name)
-		} else {
-			fmt.Printf("no scene found")
-			return nil
-		}
-
-		parsedChildItem := ParseItem(it.Scene, item)
-		parsedChildItem.Parent = it
-		it.Items = append(it.Items, parsedChildItem)
-	}
-	return it
+func (it *Item) ParseItem(item typedefs.SceneItem) (*Item, bool) {
+	return ParseItem(it.Scene, item)
 }
 
-func (sc *Scene) ParseItem(item typedefs.SceneItem) *Item {
+// NOTE: Alias
+func (sc *Scene) ParseItem(item typedefs.SceneItem) (*Item, bool) {
 	return ParseItem(sc, item)
 }
 
-func ParseItem(scene *Scene, item typedefs.SceneItem) *Item {
+func ParseItem(scene *Scene, item typedefs.SceneItem) (*Item, bool) {
 	// TODO: Should be validation on if scene/item already exists
-	cachedItem, ok := scene.Item(item.Name)
-	if ok {
-		fmt.Printf("==cachedItem.Name====>?? %v\n", cachedItem.Name)
-		// TODO: Check if Id is what is used for order or not
-		cachedItem.Name = item.Name
-		cachedItem.Layer = Layer{
+
+	//	Alignment float64 `json:"alignment,omitempty"`
+	//  [x]	Cx float64 `json:"cx,omitempty"`
+	//	[x] Cy float64 `json:"cy,omitempty"`
+	//	    // List of children (if this item is a group)
+	//	[X] GroupChildren []SceneItem `json:"groupChildren,omitempty"`
+	//	    // Scene item ID
+	//	[X] Id int `json:"id,omitempty"`
+	//	    // Whether or not this Scene Item is locked and can't be moved around
+	//	[X] Locked bool `json:"locked,omitempty"`
+	//	    // Whether or not this Scene Item is muted.
+	//	[ ] Muted bool `json:"muted,omitempty"`
+	//	    // The name of this Scene Item.
+	//	[X] Name string `json:"name,omitempty"`
+	//	    // Name of the item's parent (if this item belongs to a group)
+	//	[X] ParentGroupName string `json:"parentGroupName,omitempty"`
+	//	    // Whether or not this Scene Item is set to "visible".
+	//	[X] Render bool `json:"render,omitempty"`
+	//	[X] SourceCx float64 `json:"source_cx,omitempty"`
+	//	[X] SourceCy float64 `json:"source_cy,omitempty"`
+	//	    // Source type. Value is one of the following: "input", "filter", "transition", "scene" or "unknown"
+	//	[X] Type string `json:"type,omitempty"`
+	//	[ ] Volume float64 `json:"volume,omitempty"`
+	//	[X] X float64 `json:"x,omitempty"`
+	//	[X] Y float64 `json:"y,omitempty"`
+
+	cachedItem := &Item{
+		// NOTE: Intentionally left out muted and volume to only keep that logic
+		//       in the audiomixer and its audio sources
+		Scene: scene,
+		Id:    item.Id,
+		Name:  item.Name,
+		Type:  MarshalItemType(item.Type),
+		Layer: Layer{
 			Visible:   item.Render,
 			Locked:    item.Locked,
 			Alignment: int(item.Alignment),
@@ -314,42 +328,25 @@ func ParseItem(scene *Scene, item typedefs.SceneItem) *Item {
 				Width:  item.Cx,
 				Height: item.Cy,
 			},
-		}
-
-	} else {
-		// TODO: Not yet cahcing the scene pointers and show pointer (essentially no
-		// relationships at all atm)
-		// cX is width of sprite, cY is height
-		// x, y is position of the sprite
-
-		cachedItem = &Item{
-			Scene: scene,
-			Id:    item.Id,
-			Name:  item.Name,
-			Type:  MarshalItemType(item.Type),
-			Layer: Layer{
-				Visible:   item.Render,
-				Locked:    item.Locked,
-				Alignment: int(item.Alignment),
-				Position: Position{
-					X: item.X,
-					Y: item.Y,
-				},
-				Dimensions: Dimensions{
-					Width:  item.Cx,
-					Height: item.Cy,
-				},
-				Source: Dimensions{
-					Width:  item.SourceCx,
-					Height: item.SourceCy,
-				},
+			Source: Dimensions{
+				Width:  item.SourceCx,
+				Height: item.SourceCy,
 			},
-		}
-
+		},
 	}
-	fmt.Printf("returning cached item after parsing =======>\n")
-	scene.Items = append(scene.Items, cachedItem)
-	return cachedItem
+
+	if 0 < len(item.ParentGroupName) {
+		cachedItem.Parent, _ = scene.Item(item.ParentGroupName)
+	} else if len(item.ParentGroupName) == 0 {
+		scene.Items = append(scene.Items, cachedItem)
+	} else if 0 < len(item.GroupChildren) {
+		for _, childItem := range item.GroupChildren {
+			parsedChildItem, _ := ParseItem(scene, childItem)
+			cachedItem.Items = append(cachedItem.Items, parsedChildItem)
+		}
+	}
+
+	return cachedItem, false
 }
 
 type Items []*Item
@@ -628,84 +625,6 @@ func (obs OBS) Events() {
 //	return apiResponse.Scenes, err
 //}
 
-// TODO: Not a fan of this name, the general functionality; at least all obs
-// caching should be if separated also combined in a single public method
-
-// TODO: We need a function for ADDING a scene, and this can then also have
-//       the validation necessary to prevent duplicates
-func (sh *Show) CacheScenes() (bool, error) {
-	apiResponse, err := sh.OBS.Client.Scenes.GetSceneList()
-	if err != nil {
-		return false, err
-	}
-
-	for _, scene := range sh.Scenes {
-		scene.Cache()
-	}
-
-	items := Items{}
-	sh.Scenes = Scenes{}
-	for _, scene := range apiResponse.Scenes {
-		newScene, _ := sh.NewScene(scene.Name)
-
-		for _, item := range scene.Sources {
-			// NOTE: Cover the case were we do need the child items as their own
-			//       item(s) with a zed.
-			//       We want the ability to store just the child items into a
-			//       a group item's Items (sub-items essentially) field.
-			//       We will eventually support nested recurisve single item
-			//       type representing all items and all folder types and then
-			//       we use that abstraction to interact with OBS so we are not
-			//       confined to OBS not so good design patterns and data modeling
-			//       architecture? .. :(
-
-			parsedItem := newScene.ParseItem(item)
-			if parsedItem == nil {
-				fmt.Printf("parsedItem from newScene.ParseItem(item)\n")
-
-			} else {
-				fmt.Printf("parsedItem != nil from newScene.ParseItem(item)\n")
-			}
-
-			if 0 < len(item.GroupChildren) {
-				for _, childItem := range item.GroupChildren {
-					PrintItem(childItem)
-					parsedChildItem := parsedItem.ParseItem(childItem)
-					// NOTE: This was when we were putting all parsedChildItems in
-					//       the scene level items.
-					//items = append(items, parsedChildItem)
-					if parsedChildItem != nil {
-						parsedChildItem.Parent = parsedItem
-					}
-				}
-			}
-
-			items = append(items, parsedItem)
-
-			// TODO: Use ParentGroupName to ensure we carry over any existing
-			// relationships
-
-			//       Has sub-items
-			//       Has scene info
-
-			// TODO: Not yet caching the Show object or scene objects
-			// TODO: Assign X/Y position value on item
-		}
-
-		sh.CacheScene(
-			scene.Name,
-			items,
-			len(scene.Name) == len(apiResponse.CurrentScene) &&
-				scene.Name == apiResponse.CurrentScene,
-		)
-	}
-
-	fmt.Printf("===============================>?\n")
-	fmt.Printf("how many scenes have been cached? (%v)\n\n", sh.Scenes.Size())
-
-	return 0 < sh.Scenes.Size(), err
-}
-
 //func (obs *OBS) CurrentScene() (string, error) {
 //	apiResponse, err := obs.Client.Scenes.GetCurrentScene()
 //	return apiResponse.CurrentScene, err
@@ -737,6 +656,8 @@ func (sh *Show) CacheScenes() (bool, error) {
 
 // obs.Scene("name").Transition()
 
+// TODO: This can be relied upon unless CurrentScene() above functions to
+//       cache it from remote OBS instance over OBS ws API
 func (scs Scenes) Current() *Scene {
 	for _, scene := range scs {
 		if scene.IsCurrent {
@@ -790,7 +711,6 @@ func (sh *Show) NewScene(name string) (*Scene, bool) {
 	newScene := &Scene{
 		Show:      sh,
 		Name:      name,
-		Items:     Items{},
 		IsCurrent: false,
 	}
 
@@ -798,11 +718,11 @@ func (sh *Show) NewScene(name string) (*Scene, bool) {
 	return newScene, true
 }
 
-func (sc *Scene) AddItems(items Items) *Scene {
-	sc.Items = items
-	sc.Update()
-	return sc
-}
+//func (sc *Scene) AddItems(items Items) *Scene {
+//	sc.Items = items
+//	sc.Update()
+//	return sc
+//}
 
 // TODO: The OBS ws api should be interacted with through Update() alone
 //       and not scattered through the code so its really hard to maintain
@@ -815,54 +735,46 @@ func (sc *Scene) Current() error {
 	return err
 }
 
-func (sc *Scene) Cache() (*Scene, bool) {
-	return sc.Show.CacheScene(sc.Name, sc.Items, sc.IsCurrent)
-}
-
 func (sc *Scene) Update() (*Scene, bool) {
-	return sc.Show.UpdateScene(sc.Name)
+	//return sc.Show.UpdateScene(sc.Name)
+
+	return sc, false
 }
 
-func (sh *Show) CacheScene(name string, items Items, isCurrent bool) (*Scene, bool) {
-	cachedScene, ok := sh.Scene(name)
-	if ok {
-		cachedScene.Name = name
-		cachedScene.Items = items
-		cachedScene.IsCurrent = isCurrent
-	} else {
-		cachedScene := &Scene{
-			Show:      sh,
-			Name:      name,
-			Items:     items,
-			IsCurrent: isCurrent,
+// TODO: Need to eventually build an initiation function since
+//       Cache() is on existing scene, so no way to get new
+//       scenes currently
+// TODO: Think about condition where name has changed
+func (sc *Scene) Cache() (*Scene, bool) {
+	if apiResponse, err := sc.Show.OBS.Client.Scenes.GetSceneList(); err == nil {
+		for _, scene := range apiResponse.Scenes {
+			if sc.HasName(scene.Name) {
+				// TODO: Here we should be updating the scene name with
+				sc.Name = scene.Name
+				sc.Items = Items{}
+				for _, item := range scene.Sources {
+					if parsedItem, ok := sc.ParseItem(item); ok {
+						sc.Items = append(sc.Items, parsedItem)
+					} else {
+						fmt.Printf("parsedItem != nil from newScene.ParseItem(item)\n")
+					}
+				}
+				return sc, true
+			}
 		}
-		sh.Scenes = append(sh.Scenes, cachedScene)
-		return cachedScene, true
 	}
-	return cachedScene, false
+	return sc, false
 }
 
 // TODO: Need to do an UPDATE_SCENE function obvio
-func (sh *Show) UpdateScene(sceneName string) (*Scene, bool) {
-	// TODO: Update the OBS scene via the ws API using the current
-	//       state of the cached scene (and whatever changes it has)
-
-	apiResponse, err := sh.OBS.Client.Scenes.GetSceneList()
-	if err != nil {
-		return sh.Scene(sceneName)
-	}
-
-	var cachedScene *Scene
-	//var cachedItem *Item
-	for _, scene := range apiResponse.Scenes {
-		if scene.Name == sceneName {
-			return sh.Scene(sceneName)
-			// TODO: Update this cachedScene in OBS using the
-		}
-	}
-
-	return cachedScene, false
-}
+//func (sh *Show) UpdateScene(sceneName string) (*Scene, bool) {
+//	// TODO: Update the OBS scene via the ws API using the current
+//	//       state of the cached scene (and whatever changes it has)
+//
+//	var cachedScene *Scene
+//	//var cachedItem *Item
+//	return cachedScene, false
+//}
 
 // show.Scene("bumper").Transition()
 // TODO: Pass in variadic time.Duration, and this can be the time to sleep
@@ -909,7 +821,6 @@ func (sh Show) Scene(sceneName string) (*Scene, bool) {
 // TODO: If we don't pass up error then we will fail to provide
 //       developers using our library useful errors
 func (sh Show) CacheItem(sceneName, itemName string) (*Item, bool) {
-
 	apiResponse, err := sh.OBS.Client.Scenes.GetSceneList()
 	if err != nil {
 		return nil, false
@@ -949,6 +860,7 @@ func (sh Show) CacheItem(sceneName, itemName string) (*Item, bool) {
 					fmt.Printf("=====>running ParseItem on cachedScene===>\n")
 					fmt.Printf("cachedItem: %v \n", cachedItem)
 					cachedScene.ParseItem(sceneItem)
+
 				}
 			}
 		}
@@ -1088,21 +1000,21 @@ type Audio struct {
 //        * Mute + reduce volume to 0 [hide completely]
 //        * Mute
 
-func (obs OBS) Sources() {
-	list, _ := obs.Client.Sources.GetSourcesList()
-
-	for _, v := range list.Sources {
-		if _, err := obs.Client.Sources.SetVolume(&sources.SetVolumeParams{
-			Source: v.Name,
-			Volume: rand.Float64(),
-		}); err != nil {
-			panic(err)
-		}
-	}
-
-	if len(list.Sources) == 0 {
-		fmt.Printf("No sources!\n")
-		// TODO: Why would we exit? And exit 0??? Thats no error
-		//os.Exit(0)
-	}
-}
+//func (obs OBS) Sources() {
+//	list, _ := obs.Client.Sources.GetSourcesList()
+//
+//	for _, v := range list.Sources {
+//		if _, err := obs.Client.Sources.SetVolume(&sources.SetVolumeParams{
+//			Source: v.Name,
+//			Volume: rand.Float64(),
+//		}); err != nil {
+//			panic(err)
+//		}
+//	}
+//
+//	if len(list.Sources) == 0 {
+//		fmt.Printf("No sources!\n")
+//		// TODO: Why would we exit? And exit 0??? Thats no error
+//		//os.Exit(0)
+//	}
+//}

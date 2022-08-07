@@ -827,40 +827,53 @@ func (sc *Scene) Cache() (*Scene, bool) {
 	return sc, false
 }
 
-// TODO: Need to do an UPDATE_SCENE function obvio
-//func (sh *Show) UpdateScene(sceneName string) (*Scene, bool) {
-//	// TODO: Update the OBS scene via the ws API using the current
-//	//       state of the cached scene (and whatever changes it has)
-//
-//	var cachedScene *Scene
-//	//var cachedItem *Item
-//	return cachedScene, false
-//}
-
-// show.Scene("bumper").Transition()
-// TODO: Pass in variadic time.Duration, and this can be the time to sleep
-//       then preform the transition.
-//
-//      scene.Transition()
-//
 func (sc Scene) Transition(sleepDuration ...time.Duration) error {
 	if 0 < len(sleepDuration) {
 		fmt.Printf("sleeping \n")
 		time.Sleep(sleepDuration[0])
 	}
-	// TODO: What if sc is NIL??????? well it cant be that but what about empty?
-	//       lets validate!
-	//
-	//         (and eventually put validation in standardized methods)
-	//
-	fmt.Printf("scene\n")
-	fmt.Printf("  name: %v\n", sc.Name)
-
-	//if len(sc.Name) == 0 {
-	//	return errors.New("scene is undefined")
-	//}
 
 	return sc.Show.SetCurrentScene(sc.Name)
+}
+
+func (sh Show) SceneNames() (sceneNames []string) {
+
+	return sceneNames
+}
+
+func (sh *Show) Cache() (*Show, bool) {
+	//sh.Scenes = Scenes{}
+	if apiResponse, err := sh.OBS.Client.Scenes.GetSceneList(); err == nil {
+
+		// TODO: Its a way,... right?? ?? hello ?
+		obsSceneNames := []string{}
+		cachedSceneNames := []string{}
+		for _, cachedScene := range sh.Scenes {
+			cachedSceneNames = append(cachedSceneNames, cachedScene.Name)
+		}
+
+		for _, scene := range apiResponse.Scenes {
+			obsSceneNames = append(obsSceneNames, scene.Name)
+
+			if cachedScene, ok := sh.Scene(scene.Name); ok {
+				cachedScene.Cache()
+			} else {
+				if newScene, ok := sh.NewScene(scene.Name); ok {
+					newScene.Cache()
+				}
+				// NOTE: Here we would create a cached scene from the data that
+				//       does exist in the OBS state
+				//       And left over scenes would need to be purged
+				//         Again, just clearing and rebuilding seems easier;
+				//         but we would likely lose data since our models are
+				//         more complex than the OBS data models
+			}
+		}
+
+		return sh, len(sh.Scenes) == len(apiResponse.Scenes)
+	} else {
+		return sh, false
+	}
 }
 
 func (sh Show) SetCurrentScene(sceneName string) error {

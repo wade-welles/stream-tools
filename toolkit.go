@@ -191,8 +191,8 @@ func (t Toolkit) HandleWindowEvents() {
 				fmt.Printf("no ACTIVE window change\n")
 			}
 
-			time.Sleep(2 * time.Second)
-			t.AvatarToggle()
+			//time.Sleep(2 * time.Second)
+			//t.AvatarToggle()
 		}
 	}
 }

@@ -169,6 +169,24 @@ func (it Item) HasName(name string) bool {
 
 func (it Item) IsFolder() bool { return (0 < len(it.Items)) }
 
+// Bounds *typedefs.Bounds `json:"bounds,omitempty"`
+/// The crop specification for the object (source, scene item, etc).
+// Crop *typedefs.Crop `json:"crop,omitempty"`
+/// The item specification for this object.
+// Item *typedefs.Item `json:"item,omitempty"`
+/// The new locked status of the source. 'true' keeps it in its current position, 'false' allows movement.
+// Locked *bool `json:"locked,omitempty"`
+/// The position of the object (source, scene item, etc).
+// Position *typedefs.Position `json:"position,omitempty"`
+/// The new clockwise rotation of the item in degrees.
+// Rotation float64 `json:"rotation,omitempty"`
+/// The scaling specification for the object (source, scene item, etc).
+// Scale *typedefs.Scale `json:"scale,omitempty"`
+/// Name of the scene the source item belongs to. Defaults to the current scene.
+// SceneName string `json:"scene-name,omitempty"`
+// // The new visibility of the source. 'true' shows source, 'false' hides source.
+// Visible *bool `json:"visible,omitempty"`
+
 func (it Item) Update() (Item, bool) {
 	itemParams := sceneitems.SetSceneItemPropertiesParams{
 		SceneName: it.Scene.Name,
@@ -689,11 +707,6 @@ func (obs OBS) Events() {
 
 //func (obs *OBS) CurrentScene() (string, error) {
 //	apiResponse, err := obs.Client.Scenes.GetCurrentScene()
-//	return apiResponse.CurrentScene, err
-//}
-
-//func (obs *OBS) CacheScene() (string, error) {
-//	apiResponse, err := obs.Client.Scenes.GetCurrentScene()
 //	if err == nil {
 //		obs.Show.CurrentScene = apiResponse.CurrentScene
 //	}
@@ -791,29 +804,21 @@ func (sc *Scene) Current() error {
 	return err
 }
 
-func (sc *Scene) Update() (*Scene, bool) {
-	//return sc.Show.UpdateScene(sc.Name)
-
+func (sc Scene) Update() (*Scene, bool) {
+	// TODO: No real easy way to do this unless perhaps updating scene
+	//       list at once or deleting and re-creating?
 	return sc, false
 }
 
-// TODO: Need to eventually build an initiation function since
-//       Cache() is on existing scene, so no way to get new
-//       scenes currently
-// TODO: Think about condition where name has changed
+// TODO:
+//   type GetSceneItemListParams (goobs) to request the []*SceneItem
 func (sc *Scene) Cache() (*Scene, bool) {
 	if apiResponse, err := sc.Show.OBS.Client.Scenes.GetSceneList(); err == nil {
 		for _, scene := range apiResponse.Scenes {
 			if sc.HasName(scene.Name) {
-				// TODO: Here we should be updating the scene name with
-				sc.Name = scene.Name
 				sc.Items = Items{}
 				for _, item := range scene.Sources {
-					if parsedItem, ok := sc.ParseItem(item); ok {
-						sc.Items = append(sc.Items, parsedItem)
-					} else {
-						fmt.Printf("parsedItem != nil from newScene.ParseItem(item)\n")
-					}
+					sc.ParseItem(item)
 				}
 				return sc, true
 			}

@@ -40,66 +40,21 @@ func NewToolkit() Toolkit {
 }
 
 func (t Toolkit) HandleWindowEvents() {
-	// TODO:
-	//   BUG:
-	//     our short polling loop is repeating actions that should not be repeated
-	//     based on checking if previously active window is the same as the current
-	//     active window (NO CHANGE)
-	//   BUG:
-	//     secondary is not being detected, but primary and chromium is
+	primaryScene, _ := t.OBS.Show.Scene("content:primary")
+	bumperScene, _ := t.OBS.Show.Scene("content:bumper")
+
+	vimWindow, _ := primaryScene.Item("VIM")
+	consoleWindow, _ := primaryScene.Item("CONSOLE")
+	chromiumWindow, _ := primaryScene.Item("CHROMIUM")
 
 	tick := time.Tick(t.Delay)
 	for {
 		select {
 		case <-tick:
-			//fmt.Printf("ticky tocky...\n")
-			//activeWindowName := MarshalWindowName(name)
-
-			//fmt.Printf("marshalled window name (%v)\n", activeWindowName)
-			//fmt.Printf("marshalled window name as string (%v)\n", activeWindowName.String())
-
-			// TODO: Completely disable undefined window recognization and so we
-			// should never even cache an undefnied window type
-			//   * It shouldn't ONLY check if the current window is different than
-			//     than the active window-- but it should bypass undefined entirely
-			//     AND it should be like if the active windiow is chromium-- it
-			//     should only be checking against the other options, maybe even
-			//     have like state-machine style pre-defined transitions
-
-			//  * has it changed to a valid value? *not just has the value chagned*
-
-			// TODO:
-			// on item static avatar it has show as NIL
-
 			if t.X11.HasActiveWindowChanged() {
 				time.Sleep(4 * time.Second)
 
 				currentScene := t.OBS.Show.Current
-
-				primaryScene, _ := t.OBS.Show.Scene("content:primary")
-
-				vimWindow, _ := primaryScene.Item("VIM")
-				consoleWindow, _ := primaryScene.Item("CONSOLE")
-				chromiumWindow, _ := primaryScene.Item("CHROMIUM")
-
-				bumperScene, _ := t.OBS.Show.Scene("content:bumper")
-				// TODO: We would put any significant items cached here
-				//       then we can rebuild this switch and checks below
-				//       to get shortest and fastest
-
-				// Make naming of windows and focus is "activewindiow"
-
-				// Filter:
-				// 		* Only follow window IF its not currently in special
-				//      HOLD CARD style bumper OR
-				//    * Follow window:
-				//					IF not HOLD card
-				//					IF not END card
-				//          IF not BUMPER card (?)
-				//            OR
-				//       Alternative strategy; Follow window:
-				//          IF window CHROMIUM, PRIMARY (vim), and SECONDARY (Console)
-
 				activeWindow := t.X11.ActiveWindow()
 				switch activeWindow {
 				case Primary, Secondary:
@@ -109,9 +64,9 @@ func (t Toolkit) HandleWindowEvents() {
 							bumperScene.Transition()
 							primaryScene.Transition(4 * time.Second)
 
+							chromiumWindow.Hide().Lock().Update()
 							vimWindow.Unhide().Lock().Update()
 							consoleWindow.Unhide().Lock().Update()
-							chromiumWindow.Hide().Update()
 						}
 					}
 				case Chromium:
@@ -122,9 +77,8 @@ func (t Toolkit) HandleWindowEvents() {
 							primaryScene.Transition(4 * time.Second)
 
 							vimWindow.Hide().Lock().Update()
-
 							consoleWindow.Unhide().Lock().Update()
-							chromiumWindow.Unhide().Update()
+							chromiumWindow.Unhide().Lock().Update()
 						}
 					}
 

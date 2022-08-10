@@ -104,43 +104,20 @@ func (t Toolkit) HandleWindowEvents() {
 				switch activeWindow {
 				case Primary, Secondary:
 					t.X11.CacheActiveWindow()
-
-					// TODO: THis is when we would want to be doing a Unhide
-					//       of these and possibly hiding of others on
-					//       primary content.
-					//       A like preset for a scene, could be order, or
-					//       items, visible status, and lock status
-					//
-					//       REALLY like the idea of storing all data in
-					//       our more complex local cache but then using
-					//       two/three ephemeral scenes we delete and
-					//       re-add that just are built to temporarily
-					//       display a given scene in our system
 					if currentScene.HasName("content:primary") {
-						fmt.Printf("[primary+secondary]active?(%v)\n", t.X11.ActiveWindow())
-
 						if !vimWindow.Visible {
-							fmt.Printf("vim window is not visible, unhiding...\n")
 							bumperScene.Transition()
 							primaryScene.Transition(4 * time.Second)
 
 							vimWindow.Unhide().Lock().Update()
 							consoleWindow.Unhide().Lock().Update()
 							chromiumWindow.Hide().Update()
-						} else {
-							fmt.Printf("vim window is visible, doing nothing?...\n")
 						}
 					}
 				case Chromium:
 					t.X11.CacheActiveWindow()
 					if currentScene.HasName("content:primary") {
-						fmt.Printf("[primary+secondary]active?(%v)\n", t.X11.ActiveWindow())
-						fmt.Printf("[chromium] active window?(%v)\n", t.X11.ActiveWindow())
-
-						// TODO: Checking if we are currently focused on chromium?
-
 						if !chromiumWindow.Visible {
-							fmt.Printf("chromium window is not visible, unhiding...\n")
 							bumperScene.Transition()
 							primaryScene.Transition(4 * time.Second)
 
@@ -148,8 +125,6 @@ func (t Toolkit) HandleWindowEvents() {
 
 							consoleWindow.Unhide().Lock().Update()
 							chromiumWindow.Unhide().Update()
-						} else {
-							fmt.Printf("chromium window is visible, doing nothing?...\n")
 						}
 					}
 

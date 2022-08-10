@@ -77,6 +77,7 @@ func (t Toolkit) HandleWindowEvents() {
 				currentScene := t.OBS.Show.Current
 
 				primaryScene, _ := t.OBS.Show.Scene("content:primary")
+
 				vimWindow, _ := primaryScene.Item("VIM")
 				consoleWindow, _ := primaryScene.Item("CONSOLE")
 				chromiumWindow, _ := primaryScene.Item("CHROMIUM")
@@ -118,41 +119,37 @@ func (t Toolkit) HandleWindowEvents() {
 					if currentScene.HasName("content:primary") {
 						fmt.Printf("[primary+secondary]active?(%v)\n", t.X11.ActiveWindow())
 
-						if bumperScene, ok := t.OBS.Show.Scene("content:bumper"); ok {
+						if !vimWindow.Visible {
+							fmt.Printf("vim window is not visible, unhiding...\n")
 							bumperScene.Transition()
-						} else {
-							fmt.Printf("failed to transition to bumper\n")
-						}
-
-						if primaryScene, ok := t.OBS.Show.Scene("content:primary"); ok {
 							primaryScene.Transition(4 * time.Second)
 
 							vimWindow.Unhide().Lock().Update()
 							consoleWindow.Unhide().Lock().Update()
 							chromiumWindow.Hide().Update()
+						} else {
+							fmt.Printf("vim window is visible, doing nothing?...\n")
 						}
 					}
 				case Chromium:
+					t.X11.CacheActiveWindow()
 					if currentScene.HasName("content:primary") {
 						fmt.Printf("[primary+secondary]active?(%v)\n", t.X11.ActiveWindow())
-
 						fmt.Printf("[chromium] active window?(%v)\n", t.X11.ActiveWindow())
-						t.X11.CacheActiveWindow()
 
-						if currentScene.HasName("content:primary") &&
-							!chromiumWindow.Visible {
+						// TODO: Checking if we are currently focused on chromium?
 
-							if bumperScene, ok := t.OBS.Show.Scene("content:bumper"); ok {
-								bumperScene.Transition()
-							}
+						if !chromiumWindow.Visible {
+							fmt.Printf("chromium window is not visible, unhiding...\n")
+							bumperScene.Transition()
+							primaryScene.Transition(4 * time.Second)
 
-							if primaryScene, ok := t.OBS.Show.Scene("content:primary"); ok {
-								primaryScene.Transition(4 * time.Second)
-								vimWindow.Hide().Lock().Update()
-								consoleWindow.Hide().Lock().Update()
+							vimWindow.Hide().Lock().Update()
 
-								chromiumWindow.Unhide().Update()
-							}
+							consoleWindow.Unhide().Lock().Update()
+							chromiumWindow.Unhide().Update()
+						} else {
+							fmt.Printf("chromium window is visible, doing nothing?...\n")
 						}
 					}
 

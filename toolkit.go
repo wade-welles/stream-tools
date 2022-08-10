@@ -35,7 +35,6 @@ func NewToolkit() Toolkit {
 		Scenes: Scenes{},
 	}
 	toolkit.OBS.Show.Cache()
-
 	toolkit.X11.InitActiveWindow()
 	return toolkit
 }
@@ -73,66 +72,88 @@ func (t Toolkit) HandleWindowEvents() {
 			// on item static avatar it has show as NIL
 
 			if t.X11.HasActiveWindowChanged() {
-				switch t.X11.ActiveWindow() {
+				time.Sleep(4 * time.Second)
 
+				currentScene := t.OBS.Show.Current
+
+				primaryScene, _ := t.OBS.Show.Scene("content:primary")
+				vimWindow, _ := primaryScene.Item("VIM")
+				consoleWindow, _ := primaryScene.Item("CONSOLE")
+				chromiumWindow, _ := primaryScene.Item("CHROMIUM")
+
+				bumperScene, _ := t.OBS.Show.Scene("content:bumper")
+				// TODO: We would put any significant items cached here
+				//       then we can rebuild this switch and checks below
+				//       to get shortest and fastest
+
+				// Make naming of windows and focus is "activewindiow"
+
+				// Filter:
+				// 		* Only follow window IF its not currently in special
+				//      HOLD CARD style bumper OR
+				//    * Follow window:
+				//					IF not HOLD card
+				//					IF not END card
+				//          IF not BUMPER card (?)
+				//            OR
+				//       Alternative strategy; Follow window:
+				//          IF window CHROMIUM, PRIMARY (vim), and SECONDARY (Console)
+
+				activeWindow := t.X11.ActiveWindow()
+				switch activeWindow {
 				case Primary, Secondary:
-					// TODO: Check if the current scene is primary already
-					//       and if it is then skip it; ez pz
-
-					fmt.Printf("[primary+secondary] active window?(%v)\n", t.X11.ActiveWindow())
 					t.X11.CacheActiveWindow()
-					time.Sleep(4 * time.Second)
 
-					if bumperScene, ok := t.OBS.Show.Scene("content:bumper"); ok {
-						fmt.Printf("bumperScene.Name: %v\n", bumperScene.Name)
-						bumperScene.Transition()
-					} else {
-						fmt.Printf("failed to transition to bumper\n")
-					}
+					// TODO: THis is when we would want to be doing a Unhide
+					//       of these and possibly hiding of others on
+					//       primary content.
+					//       A like preset for a scene, could be order, or
+					//       items, visible status, and lock status
+					//
+					//       REALLY like the idea of storing all data in
+					//       our more complex local cache but then using
+					//       two/three ephemeral scenes we delete and
+					//       re-add that just are built to temporarily
+					//       display a given scene in our system
+					if currentScene.HasName("content:primary") {
+						fmt.Printf("[primary+secondary]active?(%v)\n", t.X11.ActiveWindow())
 
-					if primaryScene, ok := t.OBS.Show.Scene("content:primary"); ok {
-						primaryScene.Transition(4 * time.Second)
-
-						if vimWindow, ok := primaryScene.Item("VIM"); ok {
-							vimWindow.Unhide().Lock().Update()
+						if bumperScene, ok := t.OBS.Show.Scene("content:bumper"); ok {
+							bumperScene.Transition()
+						} else {
+							fmt.Printf("failed to transition to bumper\n")
 						}
 
-						if chromiumWindow, ok := primaryScene.Item("CHROMIUM"); ok {
+						if primaryScene, ok := t.OBS.Show.Scene("content:primary"); ok {
+							primaryScene.Transition(4 * time.Second)
+
+							vimWindow.Unhide().Lock().Update()
+							consoleWindow.Unhide().Lock().Update()
 							chromiumWindow.Hide().Update()
 						}
-
-						fmt.Printf("attempting to transition to primary\n")
-					} else {
-						fmt.Printf("failed to transition to primary\n")
 					}
 				case Chromium:
-					fmt.Printf("[chromium] active window?(%v)\n", t.X11.ActiveWindow())
-					t.X11.CacheActiveWindow()
+					if currentScene.HasName("content:primary") {
+						fmt.Printf("[primary+secondary]active?(%v)\n", t.X11.ActiveWindow())
 
-					time.Sleep(4 * time.Second)
-					if bumperScene, ok := t.OBS.Show.Scene("content:bumper"); ok {
-						fmt.Printf("attempting to transition to bumper\n")
-						// TODO: Add code so that bumper background is randomized,
-						//       OR changing OR randomly switching between x # of bgs
-						bumperScene.Transition()
-					} else {
-						fmt.Printf("failed to transition to bumper\n")
-					}
+						fmt.Printf("[chromium] active window?(%v)\n", t.X11.ActiveWindow())
+						t.X11.CacheActiveWindow()
 
-					if primaryScene, ok := t.OBS.Show.Scene("content:primary"); ok {
-						fmt.Printf("attempting to transition to primary\n")
-						primaryScene.Transition(4 * time.Second)
+						if currentScene.HasName("content:primary") &&
+							!chromiumWindow.Visible {
 
-						if vimWindow, ok := primaryScene.Item("VIM"); ok {
-							vimWindow.Hide().Lock().Update()
+							if bumperScene, ok := t.OBS.Show.Scene("content:bumper"); ok {
+								bumperScene.Transition()
+							}
+
+							if primaryScene, ok := t.OBS.Show.Scene("content:primary"); ok {
+								primaryScene.Transition(4 * time.Second)
+								vimWindow.Hide().Lock().Update()
+								consoleWindow.Hide().Lock().Update()
+
+								chromiumWindow.Unhide().Update()
+							}
 						}
-
-						if chromiumWindow, ok := primaryScene.Item("CHROMIUM"); ok {
-							chromiumWindow.Unhide().Update()
-						}
-
-					} else {
-						fmt.Printf("failed to transition to primary\n")
 					}
 
 				default: // UndefinedName
@@ -152,28 +173,6 @@ func (t Toolkit) HandleWindowEvents() {
 		}
 	}
 }
-
-//func (sh Show) ToggleItemVisibility(item *Item) (error, bool) {
-//	// TODO: Pretty sure we actually dont need to do this since
-//	//       we are interacting with
-//	cachedItem := sh.Scene(item.Scene.Name).Item(item.Name)
-//
-//	if cachedItem.Visible {
-//		return cachedItem.Hide()
-//	} else {
-//		return cachedItem.Unhide()
-//	}
-//}
-
-//func (sh Show) ToggleItemLock(item *Item) (error, bool) {
-//	cachedItem := sh.Scene(item.Scene.Name).Item(item.Name)
-//
-//	if cachedItem.Locked {
-//		return cachedItem.Unlock()
-//	} else {
-//		return cachedItem.Lock()
-//	}
-//}
 
 func (t Toolkit) AvatarToggle() {
 	if primaryScene, ok := t.OBS.Show.Scene("content:primary"); ok {

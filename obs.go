@@ -8,7 +8,6 @@ import (
 	// OBS
 	goobs "github.com/andreykaipov/goobs"
 	events "github.com/andreykaipov/goobs/api/events"
-	requests "github.com/andreykaipov/goobs/api/requests"
 	sceneitems "github.com/andreykaipov/goobs/api/requests/scene_items"
 	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
 	studiomode "github.com/andreykaipov/goobs/api/requests/studio_mode"
@@ -145,6 +144,7 @@ type Item struct {
 	//
 	Layer
 
+	// NOTE: All that is needed for a tree structure
 	Parent *Item
 	Items  Items
 
@@ -207,10 +207,28 @@ func (it Item) Update() (Item, bool) {
 	return it, err != nil
 }
 
+func (sh Show) OBSScenes() (obsScenes Scenes) {
+	if apiResponse, err := sh.OBS.Client.Scenes.GetSceneList(); err == nil {
+		sh.Current, _ = sh.Scene(apiResponse.CurrentScene)
+
+		for _, scene := range apiResponse.Scenes {
+			if newScene, ok := sh.NewScene(scene.Name); ok {
+				obsScenes = append(obsScenes, newScene)
+
+			}
+		}
+	}
+
+	return obsScenes
+}
+
 // TODO: Consider passing up the error instead of Item but this
 //       currently matches
 func (it *Item) Cache() (*Item, bool) {
+	// TODO: Maybe separate function to get Scene List; and make that
+	//       separate and then call it here to simplify this
 	if apiResponse, err := it.Scene.Show.OBS.Client.Scenes.GetSceneList(); err == nil {
+
 		for _, scene := range apiResponse.Scenes {
 			if it.Scene.HasName(scene.Name) {
 				for _, sceneItem := range scene.Sources {
@@ -445,12 +463,14 @@ type Layer struct {
 //       rid of this bool below bc its bad 4 rlly
 type Scene struct {
 	Layer
-	Show        *Show
-	Name        string
+
+	Name string
+
+	Show  *Show
+	Items Items
+
 	IsCurrent   bool
 	IsPreviewed bool
-	Items       Items
-	OBSObject   typedefs.Scene
 }
 
 func (its Items) Unlocked() (unlockedItems Items) {
@@ -521,47 +541,86 @@ func (scs Scenes) Last() *Scene  { return scs[scs.Size()-1] }
 // TODO: I thought Source == SceneItem
 
 // NOTE: Scene Collection == All (Show|Channel) Scenes
+
+type Mode uint8 // 0..255
+
+const (
+	UndefinedMode Mode = iota
+	StudioMode
+	StreamingMode
+	RecordingMode
+)
+
+func (sm Mode) String() string {
+	switch sm {
+	case StudioMode:
+		return "studio"
+	case StreamingMode:
+		return "streaming"
+	case RecordingMode:
+		return "recording"
+	default: // UndefinedMode
+		return "undefined"
+	}
+}
+
+func MarshalMode(modeName string) Mode {
+	switch modeName {
+	case StudioMode.String():
+		return StudioMode
+	case StreamingMode.String():
+		return StreamingMode
+	case RecordingMode.String():
+		return RecordingMode
+	default: // Undefined
+		return UndefinedMode
+	}
+}
+
+// TODO: Populate Modes, studio, streaming, recording; and have methods
+//       for adding/removing/lsiting/checking-if-present
 type Show struct {
-	OBS    *OBS
-	Name   string
+	OBS *OBS
+
+	Name string
+
+	Current *Scene
+	Preview *Scene
+
+	Mode []Mode
+
 	Scenes Scenes
 
 	// Profile
 	// All items?
-	// Current Scene
-	// Current Preview
 	// History/Log of bumpers played (bgs used)
-
-	// NOTE: Ideally we keep the typedefs.Scene in a linked list for better
-	// interactions
-	//Scenes       *list.List
 }
 
 //type Source struct {
 //
 //}
 
-type Usage struct {
-	CPU    int
-	Disk   int
-	Memory int
-}
-
-type Stats struct {
-	Usage     Usage
-	Streaming bool
-	Recording bool
-
-	FramesPerSecond uint8
-
-	Time               uint
-	AvgerageRenderTime uint
-	FramesLost         uint
-	FramesSkipped      uint
-	FramesDropped      uint
-	DataOutput         uint
-	Bitrate            uint
-}
+//type Usage struct {
+//	CPU    int
+//	Disk   int
+//	Memory int
+//}
+//
+//type Stats struct {
+//	Usage     Usage
+//	Streaming bool
+//	Recording bool
+//
+//	FramesPerSecond uint8
+//
+//	Time               uint
+//	AvgerageRenderTime uint
+//	FramesLost         uint
+//	FramesSkipped      uint
+//	FramesDropped      uint
+//	DataOutput         uint
+//	Bitrate            uint
+//}
 
 // NOTE: The API we are creating looks something like:
 //          obs.Show.Scenes.First()
@@ -570,9 +629,10 @@ type Stats struct {
 type OBS struct {
 	*goobs.Client
 
-	Stats      *Stats
-	AudioMixer *AudioMixer
-	Show       *Show
+	Show *Show
+
+	//Stats      *Stats
+	//AudioMixer *AudioMixer
 
 	//Sources []*goobs.Source
 }
@@ -625,67 +685,6 @@ func (obs OBS) Events() {
 //	return apiResponse.Scenes, err
 //}
 
-func (sh Show) CurrentScene() *Scene {
-	return sh.Scenes.Current()
-
-	//apiResponse, err := obs.Client.Scenes.GetCurrentScene()
-	//if err == nil {
-	//	obs.Show.CurrentScene = apiResponse.CurrentScene
-	//}
-	//return obs.Show.CurrentScene
-	//return apiResponse.CurrentScene, err
-
-}
-
-// NOTE API we should aim for should use linked lists and then we can make our
-// own scene type that ahs methods like transition.
-// obs.Scenes.First().Transition()
-
-// obs.Scenes.Last().Items.First().Hide()
-
-// NOTE: Because our scene object would have a current field, then we can pull
-// it out instead of saving the name of it. There would be a scenes object like
-//    type Scenes *list.List
-// and with that we could add methods like Current() and the base methods that
-// would be included would be container/list or, in other words lniked list
-//
-// obs.Scenes.Current().Name
-
-// obs.Scene("name").Transition()
-
-// TODO: This can be relied upon unless CurrentScene() above functions to
-//       cache it from remote OBS instance over OBS ws API
-func (scs Scenes) Current() *Scene {
-	for _, scene := range scs {
-		if scene.IsCurrent {
-			return scene
-		}
-	}
-	return nil
-}
-
-//func (scs Scenes) Random() *Scene {
-//	return nil
-//}
-
-func (scs Scenes) Preview() *Scene {
-	for _, scene := range scs {
-		if scene.IsPreviewed {
-			return scene
-		}
-	}
-	return nil
-}
-
-func (scs Scenes) Index(sceneIndex int) *Scene {
-	for index, scene := range scs {
-		if sceneIndex == index {
-			return scene
-		}
-	}
-	return nil
-}
-
 func (scs Scenes) Name(name string) (*Scene, bool) {
 	for _, scene := range scs {
 		if scene.HasName(name) {
@@ -717,17 +716,6 @@ func (sh *Show) NewScene(name string) (*Scene, bool) {
 
 // TODO: The OBS ws api should be interacted with through Update() alone
 //       and not scattered through the code so its really hard to maintain
-func (sc *Scene) Current() error {
-	sc.IsCurrent = true
-
-	r := scenes.SetCurrentSceneParams{
-		SceneName: sc.Name,
-	}
-
-	_, err := sc.Show.OBS.Scenes.SetCurrentScene(&r)
-	return err
-}
-
 func (sc Scene) Update() bool {
 	// TODO: No real easy way to do this unless perhaps updating scene
 	//       list at once or deleting and re-creating?
@@ -743,6 +731,11 @@ func (sc *Scene) Cache() (*Scene, bool) {
 	// Gets the scene specific properties of the specified source item.
 
 	if apiResponse, err := sc.Show.OBS.Client.Scenes.GetSceneList(); err == nil {
+
+		if currentScene, ok := sc.Show.Scene(apiResponse.CurrentScene); ok {
+			sc.Show.Current = currentScene
+		}
+
 		for _, scene := range apiResponse.Scenes {
 			if sc.HasName(scene.Name) {
 				sc.Items = Items{}
@@ -756,13 +749,24 @@ func (sc *Scene) Cache() (*Scene, bool) {
 	return sc, false
 }
 
-func (sc Scene) Transition(sleepDuration ...time.Duration) error {
+func (sc *Scene) Transition(sleepDuration ...time.Duration) (*Scene, bool) {
 	if 0 < len(sleepDuration) {
 		fmt.Printf("sleeping \n")
 		time.Sleep(sleepDuration[0])
 	}
 
-	return sc.Show.SetCurrentScene(sc.Name)
+	_, err := sc.Show.OBS.Scenes.SetCurrentScene(
+		&scenes.SetCurrentSceneParams{
+			SceneName: sc.Name,
+		},
+	)
+
+	if err == nil {
+		sc.IsCurrent = true
+		sc.Show.Current = sc
+	}
+
+	return sc, err == nil
 }
 
 func (sh Show) SceneNames() (sceneNames []string) {
@@ -807,42 +811,19 @@ func (sh *Show) Cache() (*Show, bool) {
 	}
 }
 
-func (sh Show) SetCurrentScene(sceneName string) error {
-	sceneRequest := scenes.SetCurrentSceneParams{
-		SceneName: sceneName,
-	}
-	_, err := sh.OBS.Scenes.SetCurrentScene(&sceneRequest)
-	return err
-}
-
-// TODO: Build update from OBS (since OBS has a UI for the time being)
-//func (sh Show) ItemAttributes() string {
-//
-
 func (sh Show) Scene(sceneName string) (*Scene, bool) {
 	return sh.Scenes.Name(sceneName)
 }
 
-// TODO: If we don't pass up error then we will fail to provide
-//       developers using our library useful errors
-
-// obs.PreviewScene("name")
-
-// obs.Scenes.First().Preview()
-// obs.Scene("name").Transition()
-
-// obs.Scenes.First().Items.First().Hide()
-
-// obs.Scenes.Preview() => Scene that is in the preview of studiomode
-
 //type Params requests.ParamsBasic
 //type Response requests.ResponseBasic
 
-type Params struct {
-	*requests.ParamsBasic
-	Name  string
-	Value string
-}
+//type Params struct {
+//	*requests.ParamsBasic
+//
+//	Name  string
+//	Value string
+//}
 
 // SceneName string `json:"scene-name,omitempty"`
 
@@ -856,32 +837,19 @@ type Params struct {
 //	return err
 //}
 
-func (sc Scene) Preview() error {
-	for index, scene := range sc.Show.Scenes {
-		sc.Show.Scenes[index].IsPreviewed = false
-		if scene.HasName(sc.Name) {
-			err := sc.Show.Preview(sc.Name)
-			sc.Show.Scenes[index].IsPreviewed = (err == nil)
-		}
-	}
-	return nil
-}
-
-func (sh Show) Preview(sceneName string) error {
+func (sc *Scene) Preview() (*Scene, bool) {
 	apiRequest := studiomode.SetPreviewSceneParams{
-		SceneName: sceneName,
+		SceneName: sc.Name,
 	}
-	_, err := sh.OBS.Client.StudioMode.SetPreviewScene(&apiRequest)
-	return err
-}
 
-func (scs Scenes) Previewed() *Scene {
-	for _, scene := range scs {
-		if scene.IsPreviewed {
-			return scene
-		}
+	_, err := sc.Show.OBS.Client.StudioMode.SetPreviewScene(&apiRequest)
+	if err == nil {
+		sc.IsPreviewed = true
+		sc.Show.Preview = sc
 	}
-	return nil
+
+	return sc, err == nil
+
 }
 
 type AudioMixer []*Audio

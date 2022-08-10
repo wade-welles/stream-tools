@@ -1,11 +1,11 @@
-package obstools
+package streamtools
 
 import (
 	"fmt"
 	"time"
 
-	obs "github.com/wade-welles/obs-tools/obs"
-	x11 "github.com/wade-welles/obs-tools/x11"
+	obs "github.com/wade-welles/stream-tools/obs"
+	x11 "github.com/wade-welles/stream-tools/x11"
 )
 
 type Toolkit struct {

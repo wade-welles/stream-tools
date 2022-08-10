@@ -1,4 +1,4 @@
-package obstools
+package obs
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 
 	// OBS
 	goobs "github.com/andreykaipov/goobs"
+
 	events "github.com/andreykaipov/goobs/api/events"
 	sceneitems "github.com/andreykaipov/goobs/api/requests/scene_items"
 	scenes "github.com/andreykaipov/goobs/api/requests/scenes"

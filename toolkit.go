@@ -3,22 +3,25 @@ package obstools
 import (
 	"fmt"
 	"time"
+
+	obs "github.com/wade-welles/obs-tools/obs"
+	x11 "github.com/wade-welles/obs-tools/x11"
 )
 
 type Toolkit struct {
 	// NOTE: Short-poll rate [we will rewrite without short polling after]
 	Delay time.Duration
-	OBS   *OBS
-	X11   *X11
+	OBS   *obs.OBS
+	X11   *x11.X11
 }
 
 func NewToolkit() Toolkit {
 	toolkit := Toolkit{
-		OBS: &OBS{
-			Client: ConnectToOBS(),
+		OBS: &obs.OBS{
+			Client: obs.ConnectToOBS(),
 		},
-		X11: &X11{
-			Client: ConnectToX11(),
+		X11: &x11.X11{
+			Client: x11.ConnectToX11(),
 		},
 		Delay: 1500 * time.Millisecond,
 	}
@@ -29,10 +32,10 @@ func NewToolkit() Toolkit {
 	//       mind the goal is to abstract awwy some of the less good design
 	//       bits into a better logical construct
 
-	toolkit.OBS.Show = &Show{
+	toolkit.OBS.Show = &obs.Show{
 		OBS:    toolkit.OBS,
 		Name:   "she hacked you",
-		Scenes: Scenes{},
+		Scenes: obs.Scenes{},
 	}
 	toolkit.OBS.Show.Cache()
 	toolkit.X11.InitActiveWindow()
@@ -57,7 +60,7 @@ func (t Toolkit) HandleWindowEvents() {
 				currentScene := t.OBS.Show.Current
 				activeWindow := t.X11.ActiveWindow()
 				switch activeWindow {
-				case Primary, Secondary:
+				case x11.Primary, x11.Secondary:
 					t.X11.CacheActiveWindow()
 					if currentScene.HasName("content:primary") {
 						if !vimWindow.Visible {
@@ -69,7 +72,7 @@ func (t Toolkit) HandleWindowEvents() {
 							consoleWindow.Unhide().Lock().Update()
 						}
 					}
-				case Chromium:
+				case x11.Chromium:
 					t.X11.CacheActiveWindow()
 					if currentScene.HasName("content:primary") {
 						if !chromiumWindow.Visible {

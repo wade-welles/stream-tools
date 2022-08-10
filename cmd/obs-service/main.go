@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	obs "github.com/wade-welles/obs-tools"
+	streamkit "github.com/wade-welles/streamkit"
 
 	cli "github.com/multiverse-os/cli"
 )
@@ -14,7 +14,7 @@ import (
 // The initial goal of this software is to augment OBS
 
 func main() {
-	toolkit := obs.NewToolkit()
+	toolkit := streamkit.NewToolkit()
 
 	cmd, initErrors := cli.New(cli.App{
 		Name:        "obs-service",

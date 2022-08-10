@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	obs "github.com/wade-welles/obs-tools"
+	streamkit "github.com/wade-welles/streamkit"
 
 	cli "github.com/multiverse-os/cli"
 )
@@ -14,7 +14,7 @@ func main() {
 	fmt.Println("===========")
 	// TODO: Don't pass this value in, just read the name of the scene collection
 	// and assign it as the show name
-	toolkit := obs.NewToolkit()
+	toolkit := streamkit.NewToolkit()
 
 	fmt.Println("Toolkit for purpose of building CLI interface: %v", toolkit)
 

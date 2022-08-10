@@ -1,11 +1,11 @@
-package streamtools
+package streamkit
 
 import (
 	"fmt"
 	"time"
 
-	obs "github.com/wade-welles/stream-tools/obs"
-	x11 "github.com/wade-welles/stream-tools/x11"
+	obs "github.com/wade-welles/streamkit/obs"
+	x11 "github.com/wade-welles/streamkit/x11"
 )
 
 type Toolkit struct {
@@ -59,10 +59,11 @@ func (t Toolkit) HandleWindowEvents() {
 
 				currentScene := t.OBS.Show.Current
 				activeWindow := t.X11.ActiveWindow()
-				switch activeWindow {
-				case x11.Primary, x11.Secondary:
-					t.X11.CacheActiveWindow()
-					if currentScene.HasName("content:primary") {
+
+				if currentScene.HasName("content:primary") {
+					switch activeWindow {
+					case x11.Primary, x11.Secondary:
+						t.X11.CacheActiveWindow()
 						if !vimWindow.Visible {
 							bumperScene.Transition()
 							primaryScene.Transition(4 * time.Second)
@@ -71,10 +72,8 @@ func (t Toolkit) HandleWindowEvents() {
 							vimWindow.Unhide().Lock().Update()
 							consoleWindow.Unhide().Lock().Update()
 						}
-					}
-				case x11.Chromium:
-					t.X11.CacheActiveWindow()
-					if currentScene.HasName("content:primary") {
+					case x11.Chromium:
+						t.X11.CacheActiveWindow()
 						if !chromiumWindow.Visible {
 							bumperScene.Transition()
 							primaryScene.Transition(4 * time.Second)
@@ -83,23 +82,20 @@ func (t Toolkit) HandleWindowEvents() {
 							consoleWindow.Unhide().Lock().Update()
 							chromiumWindow.Unhide().Lock().Update()
 						}
+					default: // UndefinedName
+						// TODO: We should never allow this condition to ever occur, and by
+						// doing that we optimize it further bc we are not checking conditions
+						// that we dont want to begin with
+						fmt.Println("[undefined] active window?(%v)", t.X11.ActiveWindow())
 					}
-
-				default: // UndefinedName
-					// TODO: We should never allow this condition to ever occur, and by
-					// doing that we optimize it further bc we are not checking conditions
-					// that we dont want to begin with
-					fmt.Println("[undefined] active window?(%v)", t.X11.ActiveWindow())
 				}
-				// TODO: Check what the active widnow currently is; then use obs-ws to
-				// change the scenes with the bumper in between
-			} else {
-				fmt.Printf("no ACTIVE window change\n")
 			}
-
-			//time.Sleep(2 * time.Second)
-			//t.AvatarToggle()
+			// TODO: Check what the active widnow currently is; then use obs-ws to
+			// change the scenes with the bumper in between
 		}
+
+		//time.Sleep(2 * time.Second)
+		//t.AvatarToggle()
 	}
 }
 

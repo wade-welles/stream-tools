@@ -2,17 +2,17 @@ package obs
 
 import (
 	"fmt"
-	"log"
+	//"log"
 	"time"
 
 	// OBS
 	goobs "github.com/andreykaipov/goobs"
 
-	events "github.com/andreykaipov/goobs/api/events"
-	sceneitems "github.com/andreykaipov/goobs/api/requests/scene_items"
+	//events "github.com/andreykaipov/goobs/api/events"
+	//sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
 	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
-	studiomode "github.com/andreykaipov/goobs/api/requests/studio_mode"
-	typedefs "github.com/andreykaipov/goobs/api/typedefs"
+	//studiomode "github.com/andreykaipov/goobs/api/requests/ui"
+	//typedefs "github.com/andreykaipov/goobs/api/typedefs"
 )
 
 // TODO: STRONGLY consider the concept of just recursively nesting a generic
@@ -208,47 +208,47 @@ func (it Item) Update() (Item, bool) {
 	return it, err != nil
 }
 
-func (sh Show) OBSScenes() (obsScenes Scenes) {
-	if apiResponse, err := sh.OBS.Client.Scenes.GetSceneList(); err == nil {
-		sh.Current, _ = sh.Scene(apiResponse.CurrentScene)
-
-		for _, scene := range apiResponse.Scenes {
-			if newScene, ok := sh.NewScene(scene.Name); ok {
-				obsScenes = append(obsScenes, newScene)
-
-			}
-		}
-	}
-
-	return obsScenes
-}
+//func (sh Show) OBSScenes() (obsScenes Scenes) {
+//	if apiResponse, err := sh.OBS.Client.Scenes.GetSceneList(); err == nil {
+//		sh.Current, _ = sh.Scene(apiResponse.CurrentScene)
+//
+//		for _, scene := range apiResponse.Scenes {
+//			if newScene, ok := sh.NewScene(scene.Name); ok {
+//				obsScenes = append(obsScenes, newScene)
+//
+//			}
+//		}
+//	}
+//
+//	return obsScenes
+//}
 
 // TODO: Consider passing up the error instead of Item but this
 //       currently matches
-func (it *Item) Cache() (*Item, bool) {
-	// TODO: Maybe separate function to get Scene List; and make that
-	//       separate and then call it here to simplify this
-	if apiResponse, err := it.Scene.Show.OBS.Client.Scenes.GetSceneList(); err == nil {
-
-		for _, scene := range apiResponse.Scenes {
-			if it.Scene.HasName(scene.Name) {
-				for _, sceneItem := range scene.Sources {
-					if it.HasName(sceneItem.Name) {
-						if parsedItem, ok := ParseItem(it.Scene, sceneItem); ok {
-							it.Id = parsedItem.Id // May not be necessary if static
-							it.Parent = parsedItem.Parent
-							it.Items = parsedItem.Items
-							it.Scene = parsedItem.Scene
-							return it, true
-						}
-					}
-				}
-			}
-		}
-	}
-	return it, false
-	//return errors.New("no scene found")
-}
+//func (it *Item) Cache() (*Item, bool) {
+//	// TODO: Maybe separate function to get Scene List; and make that
+//	//       separate and then call it here to simplify this
+//	if apiResponse, err := it.Scene.Show.OBS.Client.Scenes.GetSceneList(); err == nil {
+//
+//		for _, scene := range apiResponse.Scenes {
+//			if it.Scene.HasName(scene.Name) {
+//				for _, sceneItem := range scene.Sources {
+//					if it.HasName(sceneItem.Name) {
+//						if parsedItem, ok := ParseItem(it.Scene, sceneItem); ok {
+//							it.Id = parsedItem.Id // May not be necessary if static
+//							it.Parent = parsedItem.Parent
+//							it.Items = parsedItem.Items
+//							it.Scene = parsedItem.Scene
+//							return it, true
+//						}
+//					}
+//				}
+//			}
+//		}
+//	}
+//	return it, false
+//	//return errors.New("no scene found")
+//}
 
 /////////////////////////////////////////////////////
 // TODO: Rewrite Item.Cache() with this below??? Bc our going through
@@ -308,110 +308,110 @@ func (it Item) Print() Item {
 	return it
 }
 
-func (it *Item) ParseItem(item typedefs.SceneItem) (*Item, bool) {
-	if parsedItem, ok := ParseItem(it.Scene, item); ok {
-		it.Items = append(it.Items, parsedItem)
-		return parsedItem, true
-	}
-	return nil, false
-}
+//func (it *Item) ParseItem(item typedefs.SceneItem) (*Item, bool) {
+//	if parsedItem, ok := ParseItem(it.Scene, item); ok {
+//		it.Items = append(it.Items, parsedItem)
+//		return parsedItem, true
+//	}
+//	return nil, false
+//}
 
 // NOTE: Alias
-func (sc *Scene) ParseItem(item typedefs.SceneItem) (*Item, bool) {
-	if parsedItem, ok := ParseItem(sc, item); ok {
-		sc.Items = append(sc.Items, parsedItem)
-		return parsedItem, true
-	}
-	return nil, false
-}
+//func (sc *Scene) ParseItem(item typedefs.SceneItem) (*Item, bool) {
+//	if parsedItem, ok := ParseItem(sc, item); ok {
+//		sc.Items = append(sc.Items, parsedItem)
+//		return parsedItem, true
+//	}
+//	return nil, false
+//}
 
-func (it *Item) ToggleVisibility() bool {
-	var ok bool
-	if it.Visible {
-		_, ok = it.Hide().Update()
-	} else {
-		_, ok = it.Unhide().Update()
-	}
-	return ok
-}
+//func (it *Item) ToggleVisibility() bool {
+//	var ok bool
+//	if it.Visible {
+//		_, ok = it.Hide().Update()
+//	} else {
+//		_, ok = it.Unhide().Update()
+//	}
+//	return ok
+//}
 
-func (it *Item) ToggleLock() bool {
-	var ok bool
-	if it.Locked {
-		_, ok = it.Unlock().Update()
-	} else {
-		_, ok = it.Lock().Update()
-	}
-	return ok
-}
+//func (it *Item) ToggleLock() bool {
+//	var ok bool
+//	if it.Locked {
+//		_, ok = it.Unlock().Update()
+//	} else {
+//		_, ok = it.Lock().Update()
+//	}
+//	return ok
+//}
 
-func ParseItem(scene *Scene, item typedefs.SceneItem) (*Item, bool) {
-	// TODO: Should be validation on if scene/item already exists
-
-	//	Alignment float64 `json:"alignment,omitempty"`
-	//  [x]	Cx float64 `json:"cx,omitempty"`
-	//	[x] Cy float64 `json:"cy,omitempty"`
-	//	    // List of children (if this item is a group)
-	//	[X] GroupChildren []SceneItem `json:"groupChildren,omitempty"`
-	//	    // Scene item ID
-	//	[X] Id int `json:"id,omitempty"`
-	//	    // Whether or not this Scene Item is locked and can't be moved around
-	//	[X] Locked bool `json:"locked,omitempty"`
-	//	    // Whether or not this Scene Item is muted.
-	//	[ ] Muted bool `json:"muted,omitempty"`
-	//	    // The name of this Scene Item.
-	//	[X] Name string `json:"name,omitempty"`
-	//	    // Name of the item's parent (if this item belongs to a group)
-	//	[X] ParentGroupName string `json:"parentGroupName,omitempty"`
-	//	    // Whether or not this Scene Item is set to "visible".
-	//	[X] Render bool `json:"render,omitempty"`
-	//	[X] SourceCx float64 `json:"source_cx,omitempty"`
-	//	[X] SourceCy float64 `json:"source_cy,omitempty"`
-	//	    // Source type. Value is one of the following: "input", "filter", "transition", "scene" or "unknown"
-	//	[X] Type string `json:"type,omitempty"`
-	//	[ ] Volume float64 `json:"volume,omitempty"`
-	//	[X] X float64 `json:"x,omitempty"`
-	//	[X] Y float64 `json:"y,omitempty"`
-
-	cachedItem := &Item{
-		// NOTE: Intentionally left out muted and volume to only keep that logic
-		//       in the audiomixer and its audio sources
-		Scene: scene,
-		Id:    item.Id,
-		Name:  item.Name,
-		Type:  MarshalItemType(item.Type),
-		Layer: Layer{
-			Visible:   item.Render,
-			Locked:    item.Locked,
-			Alignment: int(item.Alignment),
-			Position: Position{
-				X: item.X,
-				Y: item.Y,
-			},
-			Dimensions: Dimensions{
-				Width:  item.Cx,
-				Height: item.Cy,
-			},
-			Source: Dimensions{
-				Width:  item.SourceCx,
-				Height: item.SourceCy,
-			},
-		},
-	}
-
-	if 0 < len(item.ParentGroupName) {
-		cachedItem.Parent, _ = scene.Item(item.ParentGroupName)
-	} else if len(item.ParentGroupName) == 0 {
-		scene.Items = append(scene.Items, cachedItem)
-	} else if 0 < len(item.GroupChildren) {
-		for _, childItem := range item.GroupChildren {
-			parsedChildItem, _ := ParseItem(scene, childItem)
-			cachedItem.Items = append(cachedItem.Items, parsedChildItem)
-		}
-	}
-
-	return cachedItem, false
-}
+//func ParseItem(scene *Scene, item typedefs.SceneItem) (*Item, bool) {
+//	// TODO: Should be validation on if scene/item already exists
+//
+//	//	Alignment float64 `json:"alignment,omitempty"`
+//	//  [x]	Cx float64 `json:"cx,omitempty"`
+//	//	[x] Cy float64 `json:"cy,omitempty"`
+//	//	    // List of children (if this item is a group)
+//	//	[X] GroupChildren []SceneItem `json:"groupChildren,omitempty"`
+//	//	    // Scene item ID
+//	//	[X] Id int `json:"id,omitempty"`
+//	//	    // Whether or not this Scene Item is locked and can't be moved around
+//	//	[X] Locked bool `json:"locked,omitempty"`
+//	//	    // Whether or not this Scene Item is muted.
+//	//	[ ] Muted bool `json:"muted,omitempty"`
+//	//	    // The name of this Scene Item.
+//	//	[X] Name string `json:"name,omitempty"`
+//	//	    // Name of the item's parent (if this item belongs to a group)
+//	//	[X] ParentGroupName string `json:"parentGroupName,omitempty"`
+//	//	    // Whether or not this Scene Item is set to "visible".
+//	//	[X] Render bool `json:"render,omitempty"`
+//	//	[X] SourceCx float64 `json:"source_cx,omitempty"`
+//	//	[X] SourceCy float64 `json:"source_cy,omitempty"`
+//	//	    // Source type. Value is one of the following: "input", "filter", "transition", "scene" or "unknown"
+//	//	[X] Type string `json:"type,omitempty"`
+//	//	[ ] Volume float64 `json:"volume,omitempty"`
+//	//	[X] X float64 `json:"x,omitempty"`
+//	//	[X] Y float64 `json:"y,omitempty"`
+//
+//	cachedItem := &Item{
+//		// NOTE: Intentionally left out muted and volume to only keep that logic
+//		//       in the audiomixer and its audio sources
+//		Scene: scene,
+//		Id:    item.Id,
+//		Name:  item.Name,
+//		Type:  MarshalItemType(item.Type),
+//		Layer: Layer{
+//			Visible:   item.Render,
+//			Locked:    item.Locked,
+//			Alignment: int(item.Alignment),
+//			Position: Position{
+//				X: item.X,
+//				Y: item.Y,
+//			},
+//			Dimensions: Dimensions{
+//				Width:  item.Cx,
+//				Height: item.Cy,
+//			},
+//			Source: Dimensions{
+//				Width:  item.SourceCx,
+//				Height: item.SourceCy,
+//			},
+//		},
+//	}
+//
+//	if 0 < len(item.ParentGroupName) {
+//		cachedItem.Parent, _ = scene.Item(item.ParentGroupName)
+//	} else if len(item.ParentGroupName) == 0 {
+//		scene.Items = append(scene.Items, cachedItem)
+//	} else if 0 < len(item.GroupChildren) {
+//		for _, childItem := range item.GroupChildren {
+//			parsedChildItem, _ := ParseItem(scene, childItem)
+//			cachedItem.Items = append(cachedItem.Items, parsedChildItem)
+//		}
+//	}
+//
+//	return cachedItem, false
+//}
 
 type Items []*Item
 
@@ -638,14 +638,14 @@ type OBS struct {
 	//Sources []*goobs.Source
 }
 
-func (obs OBS) StudioMode() bool {
-	response, err := obs.Client.StudioMode.GetStudioModeStatus()
-	if err != nil {
-		return false
-	} else {
-		return response.StudioMode
-	}
-}
+//func (obs OBS) StudioMode() bool {
+//	response, err := obs.Client.StudioMode.GetStudioModeStatus()
+//	if err != nil {
+//		return false
+//	} else {
+//		return response.StudioMode
+//	}
+//}
 
 //  TODO: This would be better as obs.Shows.Active(); but that means creating a
 //  Shows type (POTENTIALLY, but ideally no)
@@ -657,7 +657,7 @@ func (obs OBS) StudioMode() bool {
 // TODO: This should either give the full OBS object returned (like an init
 // function) or this should be a method on OBS after it is created you connect.
 func ConnectToOBS() *goobs.Client {
-	client, err := goobs.New("127.0.0.1:4444", goobs.WithDebug(true))
+	client, err := goobs.New("127.0.0.1:4444")
 	if err != nil {
 		panic(err)
 	}
@@ -665,16 +665,16 @@ func ConnectToOBS() *goobs.Client {
 }
 
 // go Events()
-func (obs OBS) Events() {
-	for event := range obs.Client.IncomingEvents {
-		switch e := event.(type) {
-		case *events.SourceVolumeChanged:
-			fmt.Printf("Volume changed for %-25q: %f\n", e.SourceName, e.Volume)
-		default:
-			log.Printf("Unhandled event: %#v", e.GetUpdateType())
-		}
-	}
-}
+//func (obs OBS) Events() {
+//	for event := range obs.Client.IncomingEvents {
+//		switch e := event.(type) {
+//		case *events.SourceVolumeChanged:
+//			fmt.Printf("Volume changed for %-25q: %f\n", e.SourceName, e.Volume)
+//		default:
+//			log.Printf("Unhandled event: %#v", e.GetUpdateType())
+//		}
+//	}
+//}
 
 // TODO: Switch to Scene
 
@@ -733,17 +733,20 @@ func (sc *Scene) Cache() (*Scene, bool) {
 
 	if apiResponse, err := sc.Show.OBS.Client.Scenes.GetSceneList(); err == nil {
 
-		if currentScene, ok := sc.Show.Scene(apiResponse.CurrentScene); ok {
+		if currentScene, ok := sc.Show.Scene(apiResponse.CurrentProgramSceneName); ok {
 			sc.Show.Current = currentScene
 		}
 
 		for _, scene := range apiResponse.Scenes {
-			if sc.HasName(scene.Name) {
-				sc.Items = Items{}
-				for _, item := range scene.Sources {
-					sc.ParseItem(item)
-				}
-				return sc, true
+			// TODO: Scene no longer comes with its sources
+			if sc.HasName(scene.SceneName) {
+				fmt.Printf("local scene cache, still exists in obs...\n")
+				fmt.Printf("but doing nothing because scenes no longer contain their sources")
+				//sc.Items = Items{}
+				//for _, item := range scene.Sources {
+				//	sc.ParseItem(item)
+				//}
+				//return sc, true
 			}
 		}
 	}
@@ -756,8 +759,8 @@ func (sc *Scene) Transition(sleepDuration ...time.Duration) (*Scene, bool) {
 		time.Sleep(sleepDuration[0])
 	}
 
-	_, err := sc.Show.OBS.Scenes.SetCurrentScene(
-		&scenes.SetCurrentSceneParams{
+	_, err := sc.Show.OBS.Scenes.SetCurrentProgramScene(
+		&scenes.SetCurrentProgramSceneParams{
 			SceneName: sc.Name,
 		},
 	)
@@ -789,12 +792,12 @@ func (sh *Show) Cache() (*Show, bool) {
 		}
 
 		for _, scene := range apiResponse.Scenes {
-			obsSceneNames = append(obsSceneNames, scene.Name)
+			obsSceneNames = append(obsSceneNames, scene.SceneName)
 
-			if cachedScene, ok := sh.Scene(scene.Name); ok {
+			if cachedScene, ok := sh.Scene(scene.SceneName); ok {
 				cachedScene.Cache()
 			} else {
-				if newScene, ok := sh.NewScene(scene.Name); ok {
+				if newScene, ok := sh.NewScene(scene.SceneName); ok {
 					newScene.Cache()
 				}
 				// NOTE: Here we would create a cached scene from the data that
@@ -838,20 +841,20 @@ func (sh Show) Scene(sceneName string) (*Scene, bool) {
 //	return err
 //}
 
-func (sc *Scene) Preview() (*Scene, bool) {
-	apiRequest := studiomode.SetPreviewSceneParams{
-		SceneName: sc.Name,
-	}
-
-	_, err := sc.Show.OBS.Client.StudioMode.SetPreviewScene(&apiRequest)
-	if err == nil {
-		sc.IsPreviewed = true
-		sc.Show.Preview = sc
-	}
-
-	return sc, err == nil
-
-}
+//func (sc *Scene) Preview() (*Scene, bool) {
+//	apiRequest := studiomode.SetPreviewSceneParams{
+//		SceneName: sc.Name,
+//	}
+//
+//	_, err := sc.Show.OBS.Client.StudioMode.SetPreviewScene(&apiRequest)
+//	if err == nil {
+//		sc.IsPreviewed = true
+//		sc.Show.Preview = sc
+//	}
+//
+//	return sc, err == nil
+//
+//}
 
 type AudioMixer []*Audio
 

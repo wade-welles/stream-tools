@@ -9,7 +9,7 @@ import (
 	goobs "github.com/andreykaipov/goobs"
 
 	//events "github.com/andreykaipov/goobs/api/events"
-	//sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
+	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
 	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
 	//studiomode "github.com/andreykaipov/goobs/api/requests/ui"
 	//typedefs "github.com/andreykaipov/goobs/api/typedefs"
@@ -133,11 +133,57 @@ type Dimensions struct {
 //       ideally we keep all that logix with just using our nesting of
 //       items recursively
 //
+type BlendMode uint8
+
+const (
+	Normal BlendMode = iota
+	Additive
+	Subtract
+	Screen
+	Multiply
+	Lighten
+	Darken
+)
+
+func (bm BlendMode) String() string {
+	switch bm {
+	case Additive:
+		return "additive"
+	case Subtract:
+		return "subtract"
+	case Multiply:
+		return "multiply"
+	case Lighten:
+		return "lighten"
+	case Darken:
+		return "darken"
+	default: // Normal
+		return "normal"
+	}
+}
+
+func MarshalBlendMode(mode string) BlendMode {
+	switch mode {
+	case Additive.String():
+		return Additive
+	case Subtract.String():
+		return Subtract
+	case Multiply.String():
+		return Multiply
+	case Lighten.String():
+		return Lighten
+	case Darken.String():
+		return Darken
+	default: // Normal
+		return Normal
+	}
+}
 
 type Item struct {
 	Id   int
 	Name string
 	Type ItemType
+	Blend BlendMode
 
 	// TODO: Add
 	//        type
@@ -190,21 +236,80 @@ func (it Item) IsFolder() bool { return (0 < len(it.Items)) }
 // // The new visibility of the source. 'true' shows source, 'false' hides source.
 // Visible *bool `json:"visible,omitempty"`
 
+// TODO: It looks like most of these values are no longer accessible, and the
+// individual attributes that are available have to be interacted with
+// individually ;_;
 func (it Item) Update() (Item, bool) {
-	itemParams := sceneitems.SetSceneItemPropertiesParams{
-		SceneName: it.Scene.Name,
-		Item:      &typedefs.Item{Name: it.Name},
-		Locked:    &it.Locked,
-		Visible:   &it.Visible,
-		// TODO: Eventually Update these values too
-		//Bounds:    resp.Bounds,
-		//Crop:      resp.Crop,
-		//Position:  resp.Position,
-		//Rotation:  resp.Rotation,
-		//Scale:     resp.Scale,
+	// TODO: Not even exactly sure what "enabled" means but for now will assume
+	// visible boolean is the "enabled" value. This went from not great to worse. 
+	itemEnabledParams := sceneitems.SetSceneItemEnabledParams{
+		SceneName:        it.Scene.Name,
+		SceneItemId:      float64(it.Id),
+		SceneItemEnabled: &it.Visible,
 	}
+	// TODO: Technically now we should be checking the returned values for changes
+	// to confirm the update was actually successful
+	_, err := it.Scene.Show.OBS.SceneItems.SetSceneItemEnabled(&itemEnabledParams)
 
-	_, err := it.Scene.Show.OBS.SceneItems.SetSceneItemProperties(&itemParams)
+	itemLockedParams := sceneitems.SetSceneItemLockedParams{
+		SceneName:       it.Scene.Name,
+		SceneItemId:     float64(it.Id),
+		SceneItemLocked: &it.Locked, 
+	}
+	_, err = it.Scene.Show.OBS.SceneItems.SetSceneItemLocked(&itemLockedParams)
+
+	itemIndexParams := sceneitems.SetSceneItemIndexParams{
+		SceneName:       it.Scene.Name,
+		SceneItemId:     float64(it.Id),
+		SceneItemIndex:  float64(it.Index),
+	}
+	_, err = it.Scene.Show.OBS.SceneItems.SetSceneItemIndex(&itemIndexParams)
+
+	// TODO: Should eventually create a enumerator to work with the string using
+	// ints but it accepts a string so blank until more work on this will do. we
+	// just wont submit it. though may be pointless since we almost never use this
+	// but then again maybe when we have programmatic control over it, then new
+	// uses will become apparent
+	itemBlendModeParams := sceneitems.SetSceneItemBlendModeParams{
+		SceneName:          it.Scene.Name,
+		SceneItemId:        float64(it.Id),
+		SceneItemBlendMode: Normal.String(),
+	}
+	_, err = it.Scene.Show.OBS.SceneItems.SetSceneItemBlendMode(&itemBlendModeParams)
+
+	// TODO: Either
+	//   1) will need to create our own transform object
+	//   2) possibly better for simplicity, we could store some of these values, 
+	//      then generate the transform params necessary to move the item from 
+	//      previous position to the new position based on 
+	//itemTransformParams := sceneitems.SetSceneItemTransformParams{
+	//	SceneName:          it.Scene.Name,
+	//	SceneItemId:        it.Id,
+	//	SceneItemTransform: &typedefs.SceneItemTransform{
+	//		Alignment:       0, // float64
+	//		SourceHeight:    0, // float64
+	//		SourceWidth:     0, // float64
+	//		Width:           0, // float64
+	//		Height:          0, // float64
+	//		Rotation:        0, // float64
+	//		PositionX:       0, // float64
+	//		PositionY:       0, // float64
+	//		BoundsType:     "", // string
+	//		BoundsAlignment: 0, // float64
+  //    BoundsHeight:    0, // float64
+	//		BoundsWidth:     0, // float64
+	//		CropBottom:      0, // float64
+	//		CropLeft:        0, // float64
+	//		CropRight:       0, // float64
+	//		CropTop:         0, // float64
+	//		ScaleX:          0, // float64
+	//		ScaleY:          0, // float64
+	//	},
+	//}
+	//_, err := it.Scene.Show.OBS.SceneItems.SetSceneItemTransformProperties(
+	//	&itemTransformParams,
+	//)
+
 	return it, err != nil
 }
 
@@ -449,7 +554,7 @@ func (its Items) Name(name string) (*Item, bool) {
 // obs.Client.Scenes.First().Items.Hidden() => all hidden items in scene
 
 type Layer struct {
-	Order     int
+	Index     int
 	Visible   bool
 	Locked    bool
 	Alignment int

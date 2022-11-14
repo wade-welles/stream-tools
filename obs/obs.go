@@ -10,9 +10,180 @@ import (
 	events "github.com/andreykaipov/goobs/api/events"
 	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
 	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
-	//studiomode "github.com/andreykaipov/goobs/api/requests/ui"
-	//typedefs "github.com/andreykaipov/goobs/api/typedefs"
+	ui "github.com/andreykaipov/goobs/api/requests/ui"
+	typedefs "github.com/andreykaipov/goobs/api/typedefs"
 )
+
+
+// NOTE: Example Output
+// {
+//   "current_program_scene": "Scene",
+//   "current_scene": "Scene",
+//   "current_transition": "Fade",
+//   "groups": [],
+//   "modules": {
+//     "auto-scene-switcher": {
+//       "active": false,
+//       "interval": 300,
+//       "non_matching_scene": "",
+//       "switch_if_not_matching": false,
+//       "switches": []
+//     },
+//     "decklink_captions": {
+//       "source": ""
+//     },
+//     "output-timer": {
+//       "autoStartRecordTimer": false,
+//       "autoStartStreamTimer": false,
+//       "pauseRecordTimer": true,
+//       "recordTimerHours": 0,
+//       "recordTimerMinutes": 0,
+//       "recordTimerSeconds": 30,
+//       "streamTimerHours": 0,
+//       "streamTimerMinutes": 0,
+//       "streamTimerSeconds": 30
+//     }
+//   },
+//   "name": "test",
+//   "preview_locked": false,
+//   "quick_transitions": [
+//     {
+//       "duration": 300,
+//       "fade_to_black": false,
+//       "hotkeys": [],
+//       "id": 1,
+//       "name": "Cut"
+//     },
+//     {
+//       "duration": 300,
+//       "fade_to_black": false,
+//       "hotkeys": [],
+//       "id": 2,
+//       "name": "Fade"
+//     },
+//     {
+//       "duration": 300,
+//       "fade_to_black": true,
+//       "hotkeys": [],
+//       "id": 3,
+//       "name": "Fade"
+//     }
+//   ],
+//   "saved_projectors": [],
+//   "scaling_enabled": false,
+//   "scaling_level": 0,
+//   "scaling_off_x": 0,
+//   "scaling_off_y": 0,
+//   "scene_order": [
+//     {
+//       "name": "Scene"
+//     }
+//   ],
+//   "sources": [
+//     {
+//       "balance": 0.5,
+//       "deinterlace_field_order": 0,
+//       "deinterlace_mode": 0,
+//       "enabled": true,
+//       "flags": 0,
+//       "hotkeys": {
+//         "MediaSource.Pause": [],
+//         "MediaSource.Play": [],
+//         "MediaSource.Restart": [],
+//         "MediaSource.Stop": [],
+//         "libobs.mute": [],
+//         "libobs.push-to-mute": [],
+//         "libobs.push-to-talk": [],
+//         "libobs.unmute": []
+//       },
+//       "id": "ffmpeg_source",
+//       "mixers": 255,
+//       "monitoring_type": 0,
+//       "muted": false,
+//       "name": "test",
+//       "prev_ver": 453115908,
+//       "private_settings": {},
+//       "push-to-mute": false,
+//       "push-to-mute-delay": 0,
+//       "push-to-talk": false,
+//       "push-to-talk-delay": 0,
+//       "settings": {},
+//       "sync": 0,
+//       "versioned_id": "ffmpeg_source",
+//       "volume": 1
+//     },
+//     {
+//       "balance": 0.5,
+//       "deinterlace_field_order": 0,
+//       "deinterlace_mode": 0,
+//       "enabled": true,
+//       "flags": 0,
+//       "hotkeys": {
+//         "OBSBasic.SelectScene": [],
+//         "libobs.hide_scene_item.test": [],
+//         "libobs.show_scene_item.test": []
+//       },
+//       "id": "scene",
+//       "mixers": 0,
+//       "monitoring_type": 0,
+//       "muted": false,
+//       "name": "Scene",
+//       "prev_ver": 453115908,
+//       "private_settings": {},
+//       "push-to-mute": false,
+//       "push-to-mute-delay": 0,
+//       "push-to-talk": false,
+//       "push-to-talk-delay": 0,
+//       "settings": {
+//         "custom_size": false,
+//         "id_counter": 1,
+//         "items": [
+//           {
+//             "align": 5,
+//             "blend_type": "normal",
+//             "bounds": {
+//               "x": 0,
+//               "y": 0
+//             },
+//             "bounds_align": 0,
+//             "bounds_type": 0,
+//             "crop_bottom": 0,
+//             "crop_left": 0,
+//             "crop_right": 0,
+//             "crop_top": 0,
+//             "group_item_backup": false,
+//             "hide_transition": {
+//               "duration": 0
+//             },
+//             "id": 1,
+//             "locked": false,
+//             "name": "test",
+//             "pos": {
+//               "x": 0,
+//               "y": 0
+//             },
+//             "private_settings": {},
+//             "rot": 0,
+//             "scale": {
+//               "x": 1,
+//               "y": 1
+//             },
+//             "scale_filter": "disable",
+//             "show_transition": {
+//               "duration": 0
+//             },
+//             "visible": true
+//           }
+//         ]
+//       },
+//       "sync": 0,
+//       "versioned_id": "scene",
+//       "volume": 1
+//     }
+//   ],
+//   "transition_duration": 300,
+//   "transitions": []
+// }
 
 // TODO: STRONGLY consider the concept of just recursively nesting a generic
 // layer-able type that we use to store both items, and scenes, and merge those
@@ -27,6 +198,9 @@ import (
 //       The sum of 1=Left or 2=Right, and 4=Top or 8=Bottom,
 //        or omit to center on that axis.
 //  TODO: Probably just not just ignore but totally subtract
+
+// TODO: I don't see this in the code anymore-- its because this is
+// extrapolating a lot so we have a much easier to use API 
 type Alignment uint8
 
 const (
@@ -79,6 +253,9 @@ const (
 	SceneType
 )
 
+// TODO: This might be better if we dont have unknown and default to Scene type;
+// but I'm not sure at the point of writing this if unknown is a possible option
+// because sometimes in the API it is
 func (itt ItemType) String() string {
 	switch itt {
 	case InputType:
@@ -182,13 +359,25 @@ type Item struct {
 	Id   int
 	Name string
 	Type ItemType
-	Blend BlendMode
 
-	// TODO: Add
-	//        type
-	//        folder/relation
-	//
+	// TODO: These are the fields on the API SceneItem object, but remember we are
+	// not doing a direct translation but an abstraction to simplify these sort of
+	// things; but reconcile needing to fully support the API and wanting to
+	// simplfiy both storage and interaction with it.
+	// InputKind  string
+	// IsGroup    bool
+
 	Layer
+	// TODO: Almost certainly blendmode should be inside of Layer but it also only
+	// applies to items and not scenes, the idea behind it is that layer holds
+	// information pertaining to both
+	Blend BlendMode
+  // SceneItemEnabled bool (visiblity?)
+	// SceneItemIndex   int
+	// SceneItemLocked  bool
+	// SceneItemTransform scenes.SceneItemTransform (oh, current transform)
+
+
 
 	// NOTE: All that is needed for a tree structure
 	Parent *Item
@@ -217,24 +406,6 @@ func (it Item) HasName(name string) bool {
 
 func (it Item) IsFolder() bool { return (0 < len(it.Items)) }
 
-// Bounds *typedefs.Bounds `json:"bounds,omitempty"`
-/// The crop specification for the object (source, scene item, etc).
-// Crop *typedefs.Crop `json:"crop,omitempty"`
-/// The item specification for this object.
-// Item *typedefs.Item `json:"item,omitempty"`
-/// The new locked status of the source. 'true' keeps it in its current position, 'false' allows movement.
-// Locked *bool `json:"locked,omitempty"`
-/// The position of the object (source, scene item, etc).
-// Position *typedefs.Position `json:"position,omitempty"`
-/// The new clockwise rotation of the item in degrees.
-// Rotation float64 `json:"rotation,omitempty"`
-/// The scaling specification for the object (source, scene item, etc).
-// Scale *typedefs.Scale `json:"scale,omitempty"`
-/// Name of the scene the source item belongs to. Defaults to the current scene.
-// SceneName string `json:"scene-name,omitempty"`
-// // The new visibility of the source. 'true' shows source, 'false' hides source.
-// Visible *bool `json:"visible,omitempty"`
-
 // TODO: It looks like most of these values are no longer accessible, and the
 // individual attributes that are available have to be interacted with
 // individually ;_;
@@ -257,6 +428,8 @@ func (it Item) Update() (Item, bool) {
 	}
 	_, err = it.Scene.Show.OBS.SceneItems.SetSceneItemLocked(&itemLockedParams)
 
+	// NOTE: This is really awkward, the scenes.SceneItem object stores both Id
+	// and Index as int, but expects to pass it as float64. 
 	itemIndexParams := sceneitems.SetSceneItemIndexParams{
 		SceneName:       it.Scene.Name,
 		SceneItemId:     float64(it.Id),
@@ -264,11 +437,6 @@ func (it Item) Update() (Item, bool) {
 	}
 	_, err = it.Scene.Show.OBS.SceneItems.SetSceneItemIndex(&itemIndexParams)
 
-	// TODO: Should eventually create a enumerator to work with the string using
-	// ints but it accepts a string so blank until more work on this will do. we
-	// just wont submit it. though may be pointless since we almost never use this
-	// but then again maybe when we have programmatic control over it, then new
-	// uses will become apparent
 	itemBlendModeParams := sceneitems.SetSceneItemBlendModeParams{
 		SceneName:          it.Scene.Name,
 		SceneItemId:        float64(it.Id),
@@ -309,7 +477,7 @@ func (it Item) Update() (Item, bool) {
 	//	&itemTransformParams,
 	//)
 
-	return it, err != nil
+	return it, err == nil
 }
 
 //func (sh Show) OBSScenes() (obsScenes Scenes) {
@@ -736,27 +904,48 @@ type OBS struct {
 
 	Show *Show
 
+
+	// TODO: We want OBS to reflect whats running in the application and Show is
+	// our local cache of it
+	Mode   Mode 
+
 	//Stats      *Stats
 	//AudioMixer *AudioMixer
 
 	//Sources []*goobs.Source
 }
 
-//func (obs OBS) StudioMode() bool {
-//	response, err := obs.Client.StudioMode.GetStudioModeStatus()
-//	if err != nil {
-//		return false
-//	} else {
-//		return response.StudioMode
-//	}
-//}
+func (obs OBS) IsMode(mode Mode) bool {
+	switch mode {
+	case StudioMode, StreamingMode, RecordingMode:
+		return true
+	default:
+		return false
+	}
+}
 
-//  TODO: This would be better as obs.Shows.Active(); but that means creating a
-//  Shows type (POTENTIALLY, but ideally no)
+func (obs OBS) ToggleStudioMode() bool {
+	toggledValue := !obs.IsMode(StudioMode)
+	studioModeEnabledParams := ui.SetStudioModeEnabledParams{
+		StudioModeEnabled: &toggledValue,
+	}
 
-//func (obs OBS) ActiveShow() *Show {
-//	return nil
-//}
+	// NOTE: I hate using Ui,.. its an acronym :( 
+	_, err := obs.Client.Ui.SetStudioModeEnabled(&studioModeEnabledParams)
+	return err == nil
+}
+
+func (obs OBS) StudioMode() bool {
+	obs.Mode = StudioMode
+	// NOTE: This using pointer to a boolean is incredibly tedious
+	studioMode := true
+	studioModeEnabledParams := ui.SetStudioModeEnabledParams{
+		StudioModeEnabled: &studioMode,
+	}
+
+	_, err := obs.Client.Ui.SetStudioModeEnabled(&studioModeEnabledParams)
+	return err == nil
+}
 
 // TODO: This should either give the full OBS object returned (like an init
 // function) or this should be a method on OBS after it is created you connect.
@@ -768,7 +957,7 @@ func ConnectToOBS(host string) *goobs.Client {
 	return client
 }
 
-// go Events()
+// go Events() to call this because its meant to be event driven-- but you know
 func (obs OBS) Events() {
 	for event := range obs.Client.IncomingEvents {
 		switch e := event.(type) {
@@ -780,15 +969,12 @@ func (obs OBS) Events() {
 	}
 }
 
-// TODO: Switch to Scene
-
-// TODO: List Scenes
-
-/////////////////////////////////////////////////////////////
-//func (obs OBS) Scenes() ([]*typedefs.Scene, error) {
-//	apiResponse, err := obs.Client.Scenes.GetSceneList()
-//	return apiResponse.Scenes, err
-//}
+// TODO: This returns typedefs, but we intend to abstract all those away so we
+// never should be returning them-- at least not as a public func
+func (obs OBS) Scenes() ([]*typedefs.Scene, error) {
+	apiResponse, err := obs.Client.Scenes.GetSceneList()
+	return apiResponse.Scenes, err
+}
 
 func (scs Scenes) Name(name string) (*Scene, bool) {
 	for _, scene := range scs {
@@ -798,11 +984,6 @@ func (scs Scenes) Name(name string) (*Scene, bool) {
 	}
 	return nil, false
 }
-
-// TODO: THis is nice bc we get chaining additions scs.Add(sc1).Add(sc2)
-//   okay
-//     so
-///     maybe like name and items?
 
 func (sh *Show) NewScene(name string) (*Scene, bool) {
 	if _, ok := sh.Scene(name); ok {
@@ -863,7 +1044,7 @@ func (sc *Scene) Transition(sleepDuration ...time.Duration) (*Scene, bool) {
 		time.Sleep(sleepDuration[0])
 	}
 
-	_, err := sc.Show.OBS.Scenes.SetCurrentProgramScene(
+	_, err := sc.Show.OBS.Client.Scenes.SetCurrentProgramScene(
 		&scenes.SetCurrentProgramSceneParams{
 			SceneName: sc.Name,
 		},

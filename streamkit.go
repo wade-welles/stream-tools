@@ -15,10 +15,14 @@ type Toolkit struct {
 	X11   *x11.X11
 }
 
+// TODO: Could pass the host for OBS and the host for X11 as variadic strings so
+// it can be empty, or provide position 1 for obs position 2 for x11 (though x11
+// should assumingly always be 127.0.0.1 whereas obs reasonably could be
+// different
 func New() Toolkit {
 	toolkit := Toolkit{
 		OBS: &obs.OBS{
-			Client: obs.ConnectToOBS(),
+			Client: obs.ConnectToOBS("192.168.1.1:4444"),
 		},
 		X11: &x11.X11{
 			Client: x11.ConnectToX11(),

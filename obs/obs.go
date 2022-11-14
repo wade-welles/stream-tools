@@ -2,13 +2,12 @@ package obs
 
 import (
 	"fmt"
-	//"log"
 	"time"
 
 	// OBS
 	goobs "github.com/andreykaipov/goobs"
 
-	//events "github.com/andreykaipov/goobs/api/events"
+	events "github.com/andreykaipov/goobs/api/events"
 	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
 	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
 	//studiomode "github.com/andreykaipov/goobs/api/requests/ui"
@@ -761,8 +760,8 @@ type OBS struct {
 
 // TODO: This should either give the full OBS object returned (like an init
 // function) or this should be a method on OBS after it is created you connect.
-func ConnectToOBS() *goobs.Client {
-	client, err := goobs.New("127.0.0.1:4444")
+func ConnectToOBS(host string) *goobs.Client {
+	client, err := goobs.New(host)
 	if err != nil {
 		panic(err)
 	}
@@ -770,16 +769,16 @@ func ConnectToOBS() *goobs.Client {
 }
 
 // go Events()
-//func (obs OBS) Events() {
-//	for event := range obs.Client.IncomingEvents {
-//		switch e := event.(type) {
-//		case *events.SourceVolumeChanged:
-//			fmt.Printf("Volume changed for %-25q: %f\n", e.SourceName, e.Volume)
-//		default:
-//			log.Printf("Unhandled event: %#v", e.GetUpdateType())
-//		}
-//	}
-//}
+func (obs OBS) Events() {
+	for event := range obs.Client.IncomingEvents {
+		switch e := event.(type) {
+		case *events.SceneItemEnableStateChanged:
+			fmt.Printf("Scene Item Enabled %-25q (%v): %v\n", e.SceneName, e.SceneItemId, e.SceneItemEnabled)
+		default:
+			fmt.Printf("Unhandled event: %#v\n", e)
+		}
+	}
+}
 
 // TODO: Switch to Scene
 

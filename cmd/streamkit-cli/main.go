@@ -11,12 +11,12 @@ import (
 
 func main() {
 	fmt.Println("streamkit-cli")
-	fmt.Println("===========")
+	fmt.Println("=============")
 	// TODO: Don't pass this value in, just read the name of the scene collection
 	// and assign it as the show name
 	toolkit := streamkit.New()
 
-	fmt.Println("Toolkit for purpose of building streaming command-line tools: %v", toolkit)
+	fmt.Printf("Not yet implemented: toolkit(%v)\n", toolkit)
 
 	cmd, initErrors := cli.New(cli.App{
 		Name:        "streamkit-service",

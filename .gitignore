@@ -1,0 +1,5 @@
+# Disregard Binaries
+cmd/streamkit-cli/streamkit-cli
+cmd/streamkit-service/streamkit-service
+
+

@@ -51,21 +51,22 @@ func New() Toolkit {
 	//       mind the goal is to abstract awwy some of the less good design
 	//       bits into a better logical construct
 
-	//toolkit.OBS.Show.OBS.Scenes = &scenes.Client{Client: toolkit.OBS.WS}
+	//toolkit.OBS.Show.OBS.Scenes = &scenes.Client{Client: t.OBS.WS}
 	//toolkit.OBS.Show.OBS.Items =
 	//	toolkit.OBS.Show.Cache()
 	toolkit.X11.InitActiveWindow()
 	return toolkit
 }
 
-func (t Toolkit) HandleWindowEvents() (err error) {
-
-	t.OBS.Show, err = t.OBS.ParseShow(t.Config["name"])
+func (t Toolkit) HandleWindowEvents() {
+	parsedShow, err := t.OBS.ParseShow(t.Config["name"])
 	if err != nil {
 		panic(err)
 	} else {
-		fmt.Printf("parsedShow: %v\n", t.OBS.Show)
+		fmt.Printf("parsedShow: %v\n", parsedShow)
 	}
+
+	fmt.Printf("number of scenes parsed from parsedShow object: %v\n", parsedShow.Scenes)
 
 	fmt.Printf("Number of scenes parsed: %v\n", len(t.OBS.Show.Scenes))
 
@@ -82,8 +83,6 @@ func (t Toolkit) HandleWindowEvents() (err error) {
 
 	fmt.Printf("Names of scenes: %v\n", strings.Join(t.OBS.Show.SceneNames(), ", "))
 
-	// TODO: We should obviously have the initial parse be separate but this is to
-	// reveal some aspects of Go to people who may not have seen these conditions
 	primaryScene, ok := t.OBS.Show.Scene("Primary")
 	if ok {
 		// TODO: We need to cache or initialize the items in a given scene

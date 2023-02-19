@@ -2,11 +2,25 @@ package obs
 
 import (
 	"fmt"
+
+	goobs "github.com/andreykaipov/goobs"
+	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
+	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
 )
+
+type API struct {
+	WS *goobs.Client
+	*ShowAPI
+}
+
+type ShowAPI struct {
+	Scenes *scenes.Client
+	Items  *sceneitems.Client
+}
 
 // for adding/removing/lsiting/checking-if-present
 type Show struct {
-	OBS *OBS
+	OBS *API
 
 	Name string
 
@@ -22,23 +36,7 @@ type Show struct {
 	// History/Log of bumpers played (bgs used)
 }
 
-// TODO: Move Show code
-//func (sh Show) OBSScenes() (obsScenes Scenes) {
-//	if apiResponse, err := sh.OBS.Client.Scenes.GetSceneList(); err == nil {
-//		sh.Current, _ = sh.Scene(apiResponse.CurrentScene)
-//
-//		for _, scene := range apiResponse.Scenes {
-//			if newScene, ok := sh.NewScene(scene.Name); ok {
-//				obsScenes = append(obsScenes, newScene)
-//
-//			}
-//		}
-//	}
-//
-//	return obsScenes
-//}
-
-func (sh *Show) NewScene(name string) (*Scene, bool) {
+func (sh *Show) ParseScene(name string) (*Scene, error) {
 	// Validation
 	// TODO: This may be completely unncessary now that we clear the show.Scenes
 	// and then iterate over the apiResponse and rebuild each of them
@@ -47,19 +45,23 @@ func (sh *Show) NewScene(name string) (*Scene, bool) {
 	//	return sh.Scenes.Name(name)
 	//}
 
-	newScene := &Scene{
-		Show:      sh,
-		Name:      name,
-		IsCurrent: false,
-		OBSClient: sh.OBS.Client,
+	parsedScene := &Scene{
+		Show: sh,
+		OBS: &ShowAPI{
+			Scenes: sh.OBS.Scenes,
+			Items:  sh.OBS.Items,
+		},
+		Name: name,
 	}
+
+	parsedScene.Cache()
 
 	// TODO: Somehwere here we should be iterating over the scene items and adding
 	// them before we append the scene to the show. Otherwise we have to iterate
 	// over each of the show.Scenes and get their items.
 
-	sh.Scenes = append(sh.Scenes, newScene)
-	return newScene, true
+	sh.Scenes = append(sh.Scenes, parsedScene)
+	return parsedScene, nil
 }
 
 func (sh Show) Scene(sceneName string) (*Scene, bool) {
@@ -81,7 +83,7 @@ func (sh *Show) Cache() (*Show, bool) {
 	// populate with API data. So we set show.Scenes to an empty slice of scenes
 	sh.Scenes = Scenes{}
 
-	if apiResponse, err := sh.OBS.Client.Scenes.GetSceneList(); err == nil {
+	if apiResponse, err := sh.OBS.Scenes.GetSceneList(); err == nil {
 
 		// apiResponse == type GetSceneListResponse struct {
 		// 	CurrentPreviewSceneName string `json:"currentPreviewSceneName,omitempty"`
@@ -106,10 +108,14 @@ func (sh *Show) Cache() (*Show, bool) {
 			//if cachedScene, ok := sh.Scene(scene.SceneName); ok {
 			//	cachedScene.Cache()
 			//} else {
-			if newScene, ok := sh.NewScene(scene.SceneName); ok {
-				fmt.Printf("attempting to cache new scene...")
-				newScene.Cache()
+			newScene, err := sh.ParseScene(scene.SceneName)
+			if err != nil {
+				panic(err)
 			}
+
+			fmt.Printf("new_scene: \n")
+			fmt.Printf("  name: %v\n", newScene.Name)
+			fmt.Printf("  item_count: %v\n", len(newScene.Items))
 			// NOTE: Here we would create a cached scene from the data that
 			//       does exist in the OBS state
 			//       And left over scenes would need to be purged

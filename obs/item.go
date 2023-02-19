@@ -3,19 +3,10 @@ package obs
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
-	typedefs "github.com/andreykaipov/goobs/api/typedefs"
 )
-
-type Position struct {
-	X, Y float64
-}
-
-type Rectangle struct {
-	Position
-	Height, Width float64
-}
 
 // TODO: Move the item content here
 type ItemType uint8
@@ -78,6 +69,9 @@ type Item struct {
 	Items  Items
 
 	Scene *Scene
+	OBS   *ShowAPI
+
+	LastCachedAt time.Time
 }
 
 /////////////////////////////////////////////////////
@@ -166,67 +160,6 @@ func (it Item) Print() Item {
 //	}
 //	return ok
 //}
-
-func ParseItem(scene *Scene, item *typedefs.SceneItem) (*Item, bool) {
-	// TODO: Should be validation on if scene/item already exists
-	cachedItem := &Item{
-		// NOTE: Intentionally left out muted and volume to only keep that logic
-		//       in the audiomixer and its audio sources
-		// TODO: Store index because its the layer position and will be important
-		Scene: scene,
-		Id:    item.SceneItemID,
-		Name:  item.SourceName,
-		Type:  MarshalItemType(item.SourceType),
-		Layer: Layer{
-			// TODO: Not sure if this is what was render
-			Visible:   item.SceneItemEnabled,
-			Locked:    item.SceneItemLocked,
-			Alignment: int(item.SceneItemTransform.Alignment),
-			Rectangle: Rectangle{
-				Position: Position{
-					X: item.SceneItemTransform.PositionX,
-					Y: item.SceneItemTransform.PositionY,
-				},
-				Width:  item.SceneItemTransform.Width,
-				Height: item.SceneItemTransform.Height,
-			},
-			Source: Rectangle{
-				Width:  item.SceneItemTransform.SourceWidth,
-				Height: item.SceneItemTransform.SourceHeight,
-			},
-		},
-	}
-
-	// TODO We only get if its a group, then presumably we do a GetSources or
-	// GetSceneItems on this specific scene item because its a group, meaning it
-	// has items that need to be parsed
-
-	// TODO: There is a GetGroupList() now too; look into that
-
-	//if item.IsGroup {
-	//	cachedItem.Parent, _ = scene.Item(item.ParentGroupName)
-	//} else if len(item.ParentGroupName) == 0 {
-	//	scene.Items = append(scene.Items, cachedItem)
-	//} else if 0 < len(item.GroupChildren) {
-	//	for _, childItem := range item.GroupChildren {
-	//		parsedChildItem, _ := ParseItem(scene, childItem)
-	//		cachedItem.Items = append(cachedItem.Items, parsedChildItem)
-	//	}
-	//}
-
-	return cachedItem, false
-}
-
-type Items []*Item
-
-// NOTE: A recursive calling of Name to check child items is preferred
-//       but OBS folders/grouping only supports 1 level so this is
-//       adequate
-//       And OBS does not support duplicate item naming (or scene)
-
-// TODO: Add ability to pull item based on a search term so we can pull out
-// something with an overly complex name like "Primary Terminal (VIM Window)"
-// but we want to just be able to check if it has for example "VIM" in the name
 
 // TODO: This should be possible to pull multiple items, it should return
 // []*Item, and we should be adding all of the matches to the slice and
@@ -360,14 +293,14 @@ func (it Item) Update() (Item, bool) {
 	}
 	// TODO: Technically now we should be checking the returned values for changes
 	// to confirm the update was actually successful
-	_, err := it.Scene.Show.OBS.SceneItems.SetSceneItemEnabled(&itemEnabledParams)
+	_, err := it.OBS.Items.SetSceneItemEnabled(&itemEnabledParams)
 
 	itemLockedParams := sceneitems.SetSceneItemLockedParams{
 		SceneName:       it.Scene.Name,
 		SceneItemId:     float64(it.Id),
 		SceneItemLocked: &it.Locked,
 	}
-	_, err = it.Scene.Show.OBS.SceneItems.SetSceneItemLocked(&itemLockedParams)
+	_, err = it.OBS.Items.SetSceneItemLocked(&itemLockedParams)
 
 	// NOTE: This is really awkward, the scenes.SceneItem object stores both Id
 	// and Index as int, but expects to pass it as float64.
@@ -376,14 +309,14 @@ func (it Item) Update() (Item, bool) {
 		SceneItemId:    float64(it.Id),
 		SceneItemIndex: float64(it.Index),
 	}
-	_, err = it.Scene.Show.OBS.SceneItems.SetSceneItemIndex(&itemIndexParams)
+	_, err = it.OBS.Items.SetSceneItemIndex(&itemIndexParams)
 
 	itemBlendModeParams := sceneitems.SetSceneItemBlendModeParams{
 		SceneName:          it.Scene.Name,
 		SceneItemId:        float64(it.Id),
 		SceneItemBlendMode: Normal.String(),
 	}
-	_, err = it.Scene.Show.OBS.SceneItems.SetSceneItemBlendMode(&itemBlendModeParams)
+	_, err = it.OBS.Items.SetSceneItemBlendMode(&itemBlendModeParams)
 
 	// TODO: Either
 	//   1) will need to create our own transform object
@@ -414,7 +347,7 @@ func (it Item) Update() (Item, bool) {
 	//		ScaleY:          0, // float64
 	//	},
 	//}
-	//_, err := it.Scene.Show.OBS.SceneItems.SetSceneItemTransformProperties(
+	//_, err := it.OBS.SceneItems.SetSceneItemTransformProperties(
 	//	&itemTransformParams,
 	//)
 
@@ -422,31 +355,49 @@ func (it Item) Update() (Item, bool) {
 }
 
 // TODO: Consider passing up the error instead of Item but this
-//       currently matches
-//func (it *Item) Cache() (*Item, bool) {
-//	// TODO: Maybe separate function to get Scene List; and make that
-//	//       separate and then call it here to simplify this
-//	if apiResponse, err := it.Scene.Show.OBS.Client.Scenes.GetSceneList(); err == nil {
 //
-//		for _, scene := range apiResponse.Scenes {
-//			if it.Scene.HasName(scene.Name) {
-//				for _, sceneItem := range scene.Sources {
-//					if it.HasName(sceneItem.Name) {
-//						if parsedItem, ok := ParseItem(it.Scene, sceneItem); ok {
-//							it.Id = parsedItem.Id // May not be necessary if static
-//							it.Parent = parsedItem.Parent
-//							it.Items = parsedItem.Items
-//							it.Scene = parsedItem.Scene
-//							return it, true
-//						}
-//					}
-//				}
-//			}
-//		}
-//	}
-//	return it, false
-//	//return errors.New("no scene found")
-//}
+//	currently matches
+func (it *Item) Cache() (*Item, bool) {
+	// TODO: Maybe separate function to get Scene List; and make that
+	//       separate and then call it here to simplify this
+	if apiResponse, err := it.OBS.Scenes.GetSceneList(); err == nil {
+
+		for _, scene := range apiResponse.Scenes {
+			if it.Scene.HasName(scene.SceneName) {
+				apiResponse, err := it.OBS.Items.GetSceneItemList(&sceneitems.GetSceneItemListParams{SceneName: scene.SceneName})
+				if err == nil {
+					for _, item := range apiResponse.SceneItems {
+						if it.HasName(item.SourceName) {
+							fmt.Printf("  item:\n")
+							fmt.Printf("    name: %v\n", item.SourceName)
+						}
+					}
+					// TODO: Decide to parse if does not exist or does this just cache
+					// things we already have a copy of? Parse is for initialization
+				}
+
+				fmt.Printf("  item_count: %v\n", len(apiResponse.SceneItems))
+
+				// TODO:[!] This wont work anymore because scene no longer contains scene
+				// items
+				//for _, sceneItem := range scene.SceneItems {
+				//	if it.HasName(sceneItem.Name) {
+				//		fmt.Printf("went through scene list and then iterated through that scenes items to find the correct one\n")
+				//		//if parsedItem, ok := ParseItem(it.Scene, sceneItem); ok {
+				//		//	it.Id = parsedItem.Id // May not be necessary if static
+				//		//	it.Parent = parsedItem.Parent
+				//		//	it.Items = parsedItem.Items
+				//		//	it.Scene = parsedItem.Scene
+				//		//	return it, true
+				//		//}
+				//	}
+				//}
+			}
+		}
+	}
+	return it, false
+	//return errors.New("no scene found")
+}
 
 // scene.Item("itemName").Hide()
 // scene.Items.Name("itemName").Hide()

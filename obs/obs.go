@@ -6,9 +6,37 @@ import (
 	goobs "github.com/andreykaipov/goobs"
 
 	events "github.com/andreykaipov/goobs/api/events"
+	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
+	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
 	ui "github.com/andreykaipov/goobs/api/requests/ui"
 	typedefs "github.com/andreykaipov/goobs/api/typedefs"
 )
+
+//type Source struct {
+//
+//}
+
+//type Usage struct {
+//	CPU    int
+//	Disk   int
+//	Memory int
+//}
+//
+//type Stats struct {
+//	Usage     Usage
+//	Streaming bool
+//	Recording bool
+//
+//	FramesPerSecond uint8
+//
+//	Time               uint
+//	AvgerageRenderTime uint
+//	FramesLost         uint
+//	FramesSkipped      uint
+//	FramesDropped      uint
+//	DataOutput         uint
+//	Bitrate            uint
+//}
 
 // TODO: STRONGLY consider the concept of just recursively nesting a generic
 // layer-able type that we use to store both items, and scenes, and merge those
@@ -73,6 +101,22 @@ func ConnectToOBS(host string) *goobs.Client {
 		panic(err)
 	}
 	return client
+}
+
+func (c *Client) ParseShow(showName string) (*Show, error) {
+	return &Show{
+		Name:   showName,
+		Scenes: Scenes{}, // TODO: Maybe populate on initialization
+		OBS: &API{
+			WS: c.WS,
+			ShowAPI: &ShowAPI{
+				Scenes: &scenes.Client{Client: c.WS.Client},
+				Items:  &sceneitems.Client{Client: c.WS.Client},
+			},
+		},
+	}, nil
+	//return &Show{}, nil
+	//return nil, fmt.Errorf("failed to parse show: '%v'", showName)
 }
 
 // TODO: Item type ideally should have group or folder in here but these are
@@ -151,39 +195,12 @@ func MarshalBlendMode(mode string) BlendMode {
 	}
 }
 
-//type Source struct {
-//
-//}
-
-//type Usage struct {
-//	CPU    int
-//	Disk   int
-//	Memory int
-//}
-//
-//type Stats struct {
-//	Usage     Usage
-//	Streaming bool
-//	Recording bool
-//
-//	FramesPerSecond uint8
-//
-//	Time               uint
-//	AvgerageRenderTime uint
-//	FramesLost         uint
-//	FramesSkipped      uint
-//	FramesDropped      uint
-//	DataOutput         uint
-//	Bitrate            uint
-//}
-
 // NOTE: The API we are creating looks something like:
 //          obs.Show.Scenes.First()
 //          obs.Show.Scenes.First().Items.First().(Show()|.Hide())
 
-type OBS struct {
-	*goobs.Client
-
+type Client struct {
+	WS   *goobs.Client
 	Show *Show
 
 	// TODO: We want OBS to reflect whats running in the application and Show is
@@ -196,7 +213,7 @@ type OBS struct {
 	//Sources []*goobs.Source
 }
 
-func (obs OBS) IsMode(mode Mode) bool {
+func (obs Client) IsMode(mode Mode) bool {
 	switch mode {
 	case StudioMode, StreamingMode, RecordingMode:
 		return true
@@ -205,18 +222,18 @@ func (obs OBS) IsMode(mode Mode) bool {
 	}
 }
 
-func (obs OBS) ToggleStudioMode() bool {
+func (obs Client) ToggleStudioMode() bool {
 	toggledValue := !obs.IsMode(StudioMode)
 	studioModeEnabledParams := ui.SetStudioModeEnabledParams{
 		StudioModeEnabled: &toggledValue,
 	}
 
 	// NOTE: I hate using Ui,.. its an acronym :(
-	_, err := obs.Client.Ui.SetStudioModeEnabled(&studioModeEnabledParams)
+	_, err := obs.WS.Ui.SetStudioModeEnabled(&studioModeEnabledParams)
 	return err == nil
 }
 
-func (obs OBS) StudioMode() bool {
+func (obs Client) StudioMode() bool {
 	obs.Mode = StudioMode
 	// NOTE: This using pointer to a boolean is incredibly tedious
 	studioMode := true
@@ -224,13 +241,13 @@ func (obs OBS) StudioMode() bool {
 		StudioModeEnabled: &studioMode,
 	}
 
-	_, err := obs.Client.Ui.SetStudioModeEnabled(&studioModeEnabledParams)
+	_, err := obs.WS.Ui.SetStudioModeEnabled(&studioModeEnabledParams)
 	return err == nil
 }
 
 // go Events() to call this because its meant to be event driven-- but you know
-func (obs OBS) Events() {
-	for event := range obs.Client.IncomingEvents {
+func (obs Client) Events() {
+	for event := range obs.WS.IncomingEvents {
 		switch e := event.(type) {
 		case *events.SceneItemEnableStateChanged:
 			fmt.Printf("Scene Item Enabled %-25q (%v): %v\n", e.SceneName, e.SceneItemId, e.SceneItemEnabled)
@@ -242,8 +259,8 @@ func (obs OBS) Events() {
 
 // TODO: This returns typedefs, but we intend to abstract all those away so we
 // never should be returning them-- at least not as a public func
-func (obs OBS) Scenes() ([]*typedefs.Scene, error) {
-	apiResponse, err := obs.Client.Scenes.GetSceneList()
+func (obs Client) Scenes() ([]*typedefs.Scene, error) {
+	apiResponse, err := obs.WS.Scenes.GetSceneList()
 	return apiResponse.Scenes, err
 }
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	streamkit "github.com/wade-welles/streamkit"
@@ -22,21 +21,14 @@ func main() {
 		Version:     cli.Version{Major: 0, Minor: 1, Patch: 0},
 		Actions: cli.Actions{
 			OnStart: func(c *cli.Context) error {
-				c.CLI.Log("OnStart action")
-				return nil
-			},
-			Fallback: func(c *cli.Context) error {
-				c.CLI.Log("Fallback action")
-				fmt.Println("Toolkit for the purpose of building a long-running linux service: \n %v", streamkit)
-
+				c.CLI.Log("OnStart action: streamkit.HandleWindowEvents()")
 				streamkit.HandleWindowEvents()
-
 				return nil
 			},
-			OnExit: func(c *cli.Context) error {
-				c.CLI.Log("on exit action")
-				return nil
-			},
+			//OnExit: func(c *cli.Context) error {
+			//	c.CLI.Log("on exit action")
+			//	return nil
+			//},
 		},
 	})
 

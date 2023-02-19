@@ -11,9 +11,10 @@ import (
 
 type Toolkit struct {
 	// NOTE: Short-poll rate [we will rewrite without short polling after]
-	Delay time.Duration
-	OBS   *obs.OBS
-	X11   *x11.X11
+	Delay  time.Duration
+	OBS    *obs.Client
+	X11    *x11.X11
+	Config map[string]string
 }
 
 // TODO: Could pass the host for OBS and the host for X11 as variadic strings so
@@ -21,15 +22,28 @@ type Toolkit struct {
 // should assumingly always be 127.0.0.1 whereas obs reasonably could be
 // different
 func New() Toolkit {
+	// TODO: Show should be from config, and obs and x11 information. Logically
+	// stored in ~/.config/$APP_NAME and the local data should be
+	// ~/.local/share/$APP_NAME
+
+	showConfig := map[string]string{
+		"name":     "she hacked you",
+		"obs_host": "192.168.1.1:4444",
+	}
+
+	wsAPI := obs.ConnectToOBS(showConfig["obs_host"])
+
 	toolkit := Toolkit{
-		OBS: &obs.OBS{
-			Client: obs.ConnectToOBS("192.168.1.1:4444"),
+		Config: showConfig,
+		OBS: &obs.Client{
+			WS: wsAPI,
 		},
 		X11: &x11.X11{
 			Client: x11.ConnectToX11(),
 		},
 		Delay: 1500 * time.Millisecond,
 	}
+
 	// TODO: Pull showname from SceneCollection.ScName
 
 	// TODO: The scenes and show object should be populated based on whatever
@@ -37,17 +51,21 @@ func New() Toolkit {
 	//       mind the goal is to abstract awwy some of the less good design
 	//       bits into a better logical construct
 
-	toolkit.OBS.Show = &obs.Show{
-		OBS:    toolkit.OBS,
-		Name:   "she hacked you",
-		Scenes: obs.Scenes{}, // TODO: Maybe populate on initialization
-	}
-	toolkit.OBS.Show.Cache()
+	//toolkit.OBS.Show.OBS.Scenes = &scenes.Client{Client: toolkit.OBS.WS}
+	//toolkit.OBS.Show.OBS.Items =
+	//	toolkit.OBS.Show.Cache()
 	toolkit.X11.InitActiveWindow()
 	return toolkit
 }
 
-func (t Toolkit) HandleWindowEvents() {
+func (t Toolkit) HandleWindowEvents() (err error) {
+
+	t.OBS.Show, err = t.OBS.ParseShow(t.Config["name"])
+	if err != nil {
+		panic(err)
+	} else {
+		fmt.Printf("parsedShow: %v\n", t.OBS.Show)
+	}
 
 	fmt.Printf("Number of scenes parsed: %v\n", len(t.OBS.Show.Scenes))
 
@@ -64,6 +82,8 @@ func (t Toolkit) HandleWindowEvents() {
 
 	fmt.Printf("Names of scenes: %v\n", strings.Join(t.OBS.Show.SceneNames(), ", "))
 
+	// TODO: We should obviously have the initial parse be separate but this is to
+	// reveal some aspects of Go to people who may not have seen these conditions
 	primaryScene, ok := t.OBS.Show.Scene("Primary")
 	if ok {
 		// TODO: We need to cache or initialize the items in a given scene

@@ -17,7 +17,7 @@ import (
 // save this type of data in some way or another `xproto.Window`
 
 type X11 struct {
-	Client  *x11.Conn
+	Client  *x11.Conn // 	xdisplay       *x.Conn
 	Windows []Window
 
 	// TODO: Maybe just cache the active window name so we do simple name

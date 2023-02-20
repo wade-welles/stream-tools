@@ -16,6 +16,8 @@ func (scs Scenes) Size() int     { return len(scs) }
 func (scs Scenes) First() *Scene { return scs[0] }
 func (scs Scenes) Last() *Scene  { return scs[scs.Size()-1] }
 
+func (scs Scenes) IsEmpty() bool { return scs.Size() == 0 }
+
 // TODO: Add reverse to get order in the OBS GUI
 
 func (scs Scenes) Name(name string) (*Scene, bool) {
@@ -48,6 +50,16 @@ type Scene struct {
 
 	IsCurrent   bool
 	IsPreviewed bool
+}
+
+// pass config?
+func NewEmptyScene(show *Show) (*Scene, error) {
+	// Needs to be minimal but still functional
+	return &Scene{
+		Name: "",
+		Show: show,
+		OBS:  new(ShowAPI),
+	}, nil
 }
 
 func (sc Scene) Item(name string) (*Item, bool) {

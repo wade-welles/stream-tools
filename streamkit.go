@@ -14,6 +14,8 @@ type Toolkit struct {
 	Delay  time.Duration
 	OBS    *obs.Client
 	X11    *x11.X11
+	Show   *obs.Show
+	Shows  []*obs.Show // could be linked list
 	Config map[string]string
 }
 
@@ -32,11 +34,18 @@ func New() Toolkit {
 	}
 
 	wsAPI := obs.ConnectToOBS(showConfig["obs_host"])
+	emptyScenes := make([]*obs.Scene, 0),
 
 	toolkit := Toolkit{
 		Config: showConfig,
+		Show: &obs.Show{
+			Scenes: emptyScenes,
+		},
 		OBS: &obs.Client{
 			WS: wsAPI,
+			Show: &obs.Show{
+				Scenes: emptyScenes,
+			},
 		},
 		X11: &x11.X11{
 			Client: x11.ConnectToX11(),
@@ -44,9 +53,11 @@ func New() Toolkit {
 		Delay: 1500 * time.Millisecond,
 	}
 
+	// TODO: We have to pull the scenes and cache them now
+
 	// TODO: Pull showname from SceneCollection.ScName
 
-	// TODO: The scenes and show object should be populated based on whatever
+	// TODO: The wscenes and show object should be populated based on whatever
 	//       the scene collection that is currently active is. but keep in
 	//       mind the goal is to abstract awwy some of the less good design
 	//       bits into a better logical construct
@@ -66,10 +77,18 @@ func (t Toolkit) HandleWindowEvents() {
 		fmt.Printf("parsedShow: %v\n", parsedShow)
 	}
 
-	fmt.Printf("number of scenes parsed from parsedShow object: %v\n", parsedShow.Scenes)
+	fmt.Printf(
+		"number of scenes parsed from parsedShow object: %v\n", 
+		parsedShow.Scenes,
+	)
+
+	fmt.Printf("t.OBS: %v\n", t.OBS.Show)
+	fmt.Printf("t.OBS.Show: %v\n", t.OBS.Show)
+
+	// Breaks here because no scenes, its not even set to empty
+	fmt.Printf("t.OBS.Show.Scenes: %v\n", t.OBS.Show.Scenes)
 
 	fmt.Printf("Number of scenes parsed: %v\n", len(t.OBS.Show.Scenes))
-
 	for _, scene := range t.OBS.Show.Scenes {
 		fmt.Printf("scene:\n")
 		fmt.Printf("  name: %v\n", scene.Name)
@@ -83,6 +102,7 @@ func (t Toolkit) HandleWindowEvents() {
 
 	fmt.Printf("Names of scenes: %v\n", strings.Join(t.OBS.Show.SceneNames(), ", "))
 
+	// TODO Primary was based off a hardcoded window type
 	primaryScene, ok := t.OBS.Show.Scene("Primary")
 	if ok {
 		// TODO: We need to cache or initialize the items in a given scene
@@ -123,11 +143,11 @@ func (t Toolkit) HandleWindowEvents() {
 				currentScene := t.OBS.Show.Current
 				activeWindow := t.X11.ActiveWindow()
 
-				if currentScene.HasName("content:primary") {
-					switch activeWindow {
-					case x11.Primary, x11.Secondary:
+				if currentScene.HasName("Primary") {
+					switch activeWindow.Type {
+					case x11.Terminal:
 						t.X11.CacheActiveWindow()
-						if !vimWindow.Visible {
+						if !vimWindow.Visible { // is it a terminal, and termainl ID or hash of some combo of things
 							bumperScene.Transition()
 							primaryScene.Transition(4 * time.Second)
 
@@ -135,7 +155,7 @@ func (t Toolkit) HandleWindowEvents() {
 							vimWindow.Unhide().Lock().Update()
 							consoleWindow.Unhide().Lock().Update()
 						}
-					case x11.Chromium:
+					case x11.Browser: // TODO: Change to is it a browser
 						t.X11.CacheActiveWindow()
 						if !chromiumWindow.Visible {
 							bumperScene.Transition()

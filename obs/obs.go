@@ -6,8 +6,6 @@ import (
 	goobs "github.com/andreykaipov/goobs"
 
 	events "github.com/andreykaipov/goobs/api/events"
-	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
-	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
 	ui "github.com/andreykaipov/goobs/api/requests/ui"
 	typedefs "github.com/andreykaipov/goobs/api/typedefs"
 )
@@ -30,7 +28,7 @@ import (
 //	FramesPerSecond uint8
 //
 //	Time               uint
-//	AvgerageRenderTime uint
+//	AverageRenderTime uint
 //	FramesLost         uint
 //	FramesSkipped      uint
 //	FramesDropped      uint
@@ -91,12 +89,14 @@ func (a Alignment) String() string {
 	}
 }
 
+// TODO: So its now clear that ParseShow runs but ParseScene is never ran
 func MarshalAlignment(alignment int) Alignment { return Alignment(alignment) }
 
 // TODO: This should either give the full OBS object returned (like an init
 // function) or this should be a method on OBS after it is created you connect.
 func ConnectToOBS(host string) *goobs.Client {
 	client, err := goobs.New(host)
+	// TODO: If we fail to connect, we could have streamkit launch obs
 	if err != nil {
 		panic(err)
 	}
@@ -104,16 +104,15 @@ func ConnectToOBS(host string) *goobs.Client {
 }
 
 func (c *Client) ParseShow(showName string) (*Show, error) {
+	fmt.Printf("ParseShow ran...\n")
 	return &Show{
-		Name:   showName,
-		Scenes: Scenes{}, // TODO: Maybe populate on initialization
-		OBS: &API{
-			WS: c.WS,
-			ShowAPI: &ShowAPI{
-				Scenes: &scenes.Client{Client: c.WS.Client},
-				Items:  &sceneitems.Client{Client: c.WS.Client},
-			},
-		},
+		Name: showName,
+		//Scenes: Scenes{}, // TODO: Maybe populate on initialization
+		OBS: c.WS,
+		//ShowAPI: &ShowAPI{
+		//	Scenes: &scenes.Client{Client: c.WS.Client},
+		//	Items:  &sceneitems.Client{Client: c.WS.Client},
+		//},
 	}, nil
 	//return &Show{}, nil
 	//return nil, fmt.Errorf("failed to parse show: '%v'", showName)

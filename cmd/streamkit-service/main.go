@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	streamkit "github.com/wade-welles/streamkit"
@@ -34,5 +35,7 @@ func main() {
 
 	if len(initErrors) == 0 {
 		cmd.Parse(os.Args).Execute()
+	} else {
+		panic(fmt.Errorf("expected 0 args"))
 	}
 }

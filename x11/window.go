@@ -45,6 +45,7 @@ type Position struct {
 	Y int16
 }
 
+// lol didnt use point
 type Rectangle struct {
 	X, Y          int16
 	Width, Height uint16
@@ -58,7 +59,7 @@ type Rectangle struct {
 type Window struct {
 	ID      string // TODO: Maybe store innerID and see if its something we can use
 	Title   string
-	PID     int
+	PID     uint32
 	Type    WindowType
 	Focused bool       // aka Active
 	X11     x11.Window // The base Window object from our library
@@ -71,6 +72,34 @@ type Window struct {
 }
 
 // TODO: Can generate x11.WindowInfo from x11.Window
+//func (x *X11) ParseWindow(xwin Window) (*Window, error) {
+//	name, err := ewmh.GetWMName(x.Client, xwin).Reply(x.Client)
+//	if err != nil {
+//		return nil, err
+//	} else {
+//		fmt.Printf("\tName: ")
+//		fmt.Printf("%s\n", name)
+//	}
+//
+//	pidString, err := ewmh.GetWMPid(x.Client, xwin).Reply(x.Client)
+//	if err != nil {
+//		return nil, err
+//	} else {
+//		fmt.Printf("\tPid:%v\n", pidString)
+//		data, _ := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pidString))
+//		fmt.Printf("\t\tCmdline: %v\n", data)
+//	}
+//
+//	pid, err := strconv.Atoi(pidString)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return &Window{
+//		Title: name,
+//		PID:   pid,
+//	}, nil
+//}
 
 var UndefinedWindow = Window{Title: "", Type: UndefinedType}
 

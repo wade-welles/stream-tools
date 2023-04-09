@@ -4,23 +4,21 @@ import (
 	"fmt"
 
 	goobs "github.com/andreykaipov/goobs"
-	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
-	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
 )
 
-type API struct {
-	WS *goobs.Client
-	*ShowAPI
-}
-
-type ShowAPI struct {
-	Scenes *scenes.Client
-	Items  *sceneitems.Client
-}
+//type API struct {
+//	WS *goobs.Client
+//	*ShowAPI
+//}
+//
+//type ShowAPI struct {
+//	Scenes *scenes.Client
+//	Items  *sceneitems.Client
+//}
 
 // for adding/removing/lsiting/checking-if-present
 type Show struct {
-	OBS *API
+	OBS *goobs.Client
 
 	Name string
 
@@ -31,10 +29,14 @@ type Show struct {
 
 	Scenes Scenes
 
+	// client.Scenes.GetSceneList()
+
 	// Profile
 	// All items?
 	// History/Log of bumpers played (bgs used)
 }
+
+type Shows []*Show
 
 func (sh *Show) ParseScene(name string) (*Scene, error) {
 	// Validation
@@ -45,16 +47,16 @@ func (sh *Show) ParseScene(name string) (*Scene, error) {
 	//	return sh.Scenes.Name(name)
 	//}
 
+	fmt.Printf("ParseScene ran...\n")
+
 	parsedScene := &Scene{
 		Show: sh,
-		OBS: &ShowAPI{
-			Scenes: sh.OBS.Scenes,
-			Items:  sh.OBS.Items,
-		},
 		Name: name,
 	}
 
-	parsedScene.Cache()
+	fmt.Printf("parsedScene.Name: %v\n", parsedScene.Name)
+
+	//parsedScene.Cache()
 
 	// TODO: Somehwere here we should be iterating over the scene items and adding
 	// them before we append the scene to the show. Otherwise we have to iterate
@@ -65,6 +67,15 @@ func (sh *Show) ParseScene(name string) (*Scene, error) {
 }
 
 func (sh Show) Scene(sceneName string) (*Scene, bool) {
+	fmt.Printf("sh.Scenes.Name(sceneName): and sceneName is %v\n", sceneName)
+	// TODO: So the problem is when we hit this, Scenes doesn't exist properly
+	if sh.Scenes == nil {
+		fmt.Printf("scenes was nil\n")
+		sh.Scenes = Scenes{}
+	} else {
+		fmt.Printf("scenes was nil\n")
+	}
+
 	return sh.Scenes.Name(sceneName)
 }
 

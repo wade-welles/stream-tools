@@ -23,7 +23,7 @@ type Toolkit struct {
 // it can be empty, or provide position 1 for obs position 2 for x11 (though x11
 // should assumingly always be 127.0.0.1 whereas obs reasonably could be
 // different
-func New() Toolkit {
+func New() (toolkit *Toolkit) {
 	// TODO: Show should be from config, and obs and x11 information. Logically
 	// stored in ~/.config/$APP_NAME and the local data should be
 	// ~/.local/share/$APP_NAME
@@ -33,10 +33,10 @@ func New() Toolkit {
 		"obs_host": "192.168.1.1:4444",
 	}
 
+	emptyScenes := make([]*obs.Scene, 0)
 	wsAPI := obs.ConnectToOBS(showConfig["obs_host"])
-	emptyScenes := make([]*obs.Scene, 0),
 
-	toolkit := Toolkit{
+	toolkit = &Toolkit{
 		Config: showConfig,
 		Show: &obs.Show{
 			Scenes: emptyScenes,
@@ -44,6 +44,7 @@ func New() Toolkit {
 		OBS: &obs.Client{
 			WS: wsAPI,
 			Show: &obs.Show{
+				OBS:    wsAPI,
 				Scenes: emptyScenes,
 			},
 		},
@@ -78,8 +79,17 @@ func (t Toolkit) HandleWindowEvents() {
 	}
 
 	fmt.Printf(
-		"number of scenes parsed from parsedShow object: %v\n", 
+		"number of scenes parsed from parsedShow object: %v\n",
 		parsedShow.Scenes,
+	)
+
+	parsedShow.ParseScene("primary")
+
+	parsedShow.Cache()
+
+	fmt.Printf(
+		"Scenes len of show, this is wrong show likley: %v\n",
+		len(parsedShow.Scenes),
 	)
 
 	fmt.Printf("t.OBS: %v\n", t.OBS.Show)
@@ -100,16 +110,24 @@ func (t Toolkit) HandleWindowEvents() {
 		}
 	}
 
-	fmt.Printf("Names of scenes: %v\n", strings.Join(t.OBS.Show.SceneNames(), ", "))
+	// this is returning
+	// sh.Scenes.Name(sceneName): and sceneName is Primary, so we get 1 out of 4
+	// of the scene names loaded and no scenes?
+	fmt.Printf(".SceneNames(): %s\n", strings.Join(t.OBS.Show.SceneNames(), ", "))
+	fmt.Printf("len(.Scenenames()) %v\n", len(t.OBS.Show.SceneNames()))
 
 	// TODO Primary was based off a hardcoded window type
-	primaryScene, ok := t.OBS.Show.Scene("Primary")
+
+	// TODO: THIS =========== LINE is where we are failing, it doesnt look up
+	// Primary so it panics
+
+	primaryScene, ok := parsedShow.Scene("Primary")
 	if ok {
 		// TODO: We need to cache or initialize the items in a given scene
 	} else {
 		panic(fmt.Errorf("failed to locate primary scene"))
 	}
-	bumperScene, ok := t.OBS.Show.Scene("Bumper")
+	bumperScene, ok := parsedShow.Scene("Bumper")
 	if !ok {
 		panic(fmt.Errorf("failed to locate bumper scene"))
 	}
@@ -117,21 +135,22 @@ func (t Toolkit) HandleWindowEvents() {
 	// TODO: This lookup is not connecting with the parsed items when we are
 	// running .Cache() on each scene as its parsed in Show.Cache()
 	fmt.Printf("# of primaryScene items: %v\n", len(primaryScene.Items))
+	fmt.Printf("# of bumperScene items: %v\n", len(bumperScene.Items))
 
-	vimWindowName := "Primary Terminal (VIM Window)"
-	vimWindow, ok := primaryScene.Item(vimWindowName)
-	if ok {
-		fmt.Printf("found vimWindow item: %v\n", vimWindow)
-	} else {
-		panic(
-			fmt.Errorf(
-				"failed to find item '" + vimWindowName + "' within the primary scene",
-			),
-		)
-	}
+	//vimWindowName := "Primary Terminal (VIM Window)"
+	//vimWindow, ok := primaryScene.Item(vimWindowName)
+	//if ok {
+	//	fmt.Printf("found vimWindow item: %v\n", vimWindow)
+	//} else {
+	//	panic(
+	//		fmt.Errorf(
+	//			"failed to find item '" + vimWindowName + "' within the primary scene",
+	//		),
+	//	)
+	//}
 
-	consoleWindow, _ := primaryScene.Item("CONSOLE")
-	chromiumWindow, _ := primaryScene.Item("CHROMIUM")
+	//consoleWindow, _ := primaryScene.Item("CONSOLE")
+	//chromiumWindow, _ := primaryScene.Item("CHROMIUM")
 
 	tick := time.Tick(t.Delay)
 	for {
@@ -147,33 +166,36 @@ func (t Toolkit) HandleWindowEvents() {
 					switch activeWindow.Type {
 					case x11.Terminal:
 						t.X11.CacheActiveWindow()
-						if !vimWindow.Visible { // is it a terminal, and termainl ID or hash of some combo of things
-							bumperScene.Transition()
-							primaryScene.Transition(4 * time.Second)
+						//if !vimWindow.Visible { // is it a terminal, and termainl ID or hash of some combo of things
+						//	bumperScene.Transition()
+						//	primaryScene.Transition(4 * time.Second)
 
-							chromiumWindow.Hide().Lock().Update()
-							vimWindow.Unhide().Lock().Update()
-							consoleWindow.Unhide().Lock().Update()
-						}
+						//	chromiumWindow.Hide().Lock().Update()
+						//	vimWindow.Unhide().Lock().Update()
+						//	consoleWindow.Unhide().Lock().Update()
+						//}
 					case x11.Browser: // TODO: Change to is it a browser
 						t.X11.CacheActiveWindow()
-						if !chromiumWindow.Visible {
-							bumperScene.Transition()
-							primaryScene.Transition(4 * time.Second)
+						//if !chromiumWindow.Visible {
+						//	bumperScene.Transition()
+						//	primaryScene.Transition(4 * time.Second)
 
-							vimWindow.Hide().Lock().Update()
-							consoleWindow.Unhide().Lock().Update()
-							chromiumWindow.Unhide().Lock().Update()
-						}
+						//	vimWindow.Hide().Lock().Update()
+						//	consoleWindow.Unhide().Lock().Update()
+						//	chromiumWindow.Unhide().Lock().Update()
+						//}
 					default: // UndefinedName
 						// TODO: We should never allow this condition to ever occur, and by
 						// doing that we optimize it further bc we are not checking conditions
 						// that we dont want to begin with
 						fmt.Println("[undefined] active window?(%v)", t.X11.ActiveWindow())
 					}
+				} else {
+					fmt.Printf("current scene is not set to primary")
+
 				}
 			}
-			// TODO: Check what the active widnow currently is; then use obs-ws to
+			// TODO: Check what the active window currently is; then use obs-ws to
 			// change the scenes with the bumper in between
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	goobs "github.com/andreykaipov/goobs"
 	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
 	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
 	typedefs "github.com/andreykaipov/goobs/api/typedefs"
@@ -21,7 +22,9 @@ func (scs Scenes) IsEmpty() bool { return scs.Size() == 0 }
 // TODO: Add reverse to get order in the OBS GUI
 
 func (scs Scenes) Name(name string) (*Scene, bool) {
+	fmt.Sprintf("name we are looking for: %v\n", name)
 	for _, scene := range scs {
+		fmt.Sprintf("  scene: %v \n", scene)
 		if scene.HasName(name) {
 			return scene, true
 		}
@@ -45,7 +48,7 @@ type Scene struct {
 	// extra memory to directly save OBSClient in scene, so it can access it
 	// without the jumps. Then we will benchmark these two options to demonstrate
 	// something about Go that is important
-	OBS   *ShowAPI
+	OBS   *goobs.Client
 	Items Items
 
 	IsCurrent   bool
@@ -58,7 +61,7 @@ func NewEmptyScene(show *Show) (*Scene, error) {
 	return &Scene{
 		Name: "",
 		Show: show,
-		OBS:  new(ShowAPI),
+		OBS:  show.OBS,
 	}, nil
 }
 
@@ -121,10 +124,11 @@ func (sc *Scene) ParseItem(item *typedefs.SceneItem) (*Item, error) {
 		// NOTE: Intentionally left out muted and volume to only keep that logic
 		//       in the audiomixer and its audio sources
 		// TODO: Store index because its the layer position and will be important
-		OBS: &ShowAPI{
-			Scenes: &scenes.Client{Client: sc.Show.OBS.WS.Client},
-			Items:  &sceneitems.Client{Client: sc.Show.OBS.WS.Client},
-		},
+		OBS: sc.OBS,
+		//OBS: &ShowAPI{
+		//	Scenes: &scenes.Client{Client: sc.Show.OBS.WS.Client},
+		//	Items:  &sceneitems.Client{Client: sc.Show.OBS.WS.Client},
+		//},
 		Scene: sc,
 		Id:    item.SceneItemID,
 		Name:  item.SourceName,
@@ -206,7 +210,8 @@ func (sc *Scene) Cache() (*Scene, bool) {
 	// TODO This is not *api.Client but *goobs.Client which makes the typecast not
 	// work
 	// NOTE: Lets benchmark this against a direct OBSClient object
-	apiResponse, err := sc.OBS.Items.GetSceneItemList(
+	// GetSceneItemListResponse
+	apiResponse, err := sc.Show.OBS.SceneItems.GetSceneItemList(
 		&sceneitems.GetSceneItemListParams{
 			SceneName: sc.Name,
 		},

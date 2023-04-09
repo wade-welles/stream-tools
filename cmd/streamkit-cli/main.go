@@ -16,8 +16,6 @@ func main() {
 	// and assign it as the show name
 	toolkit := streamkit.New()
 
-	fmt.Printf("Not yet implemented: toolkit(%v)\n", toolkit)
-
 	cmd, initErrors := cli.New(cli.App{
 		Name:        "streamkit-service",
 		Description: "A long running streaming service toolkit",

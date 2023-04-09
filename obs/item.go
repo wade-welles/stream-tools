@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	goobs "github.com/andreykaipov/goobs"
 	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
 )
 
@@ -69,7 +70,7 @@ type Item struct {
 	Items  Items
 
 	Scene *Scene
-	OBS   *ShowAPI
+	OBS   *goobs.Client
 
 	LastCachedAt time.Time
 }
@@ -293,14 +294,14 @@ func (it Item) Update() (Item, bool) {
 	}
 	// TODO: Technically now we should be checking the returned values for changes
 	// to confirm the update was actually successful
-	_, err := it.OBS.Items.SetSceneItemEnabled(&itemEnabledParams)
+	_, err := it.OBS.SceneItems.SetSceneItemEnabled(&itemEnabledParams)
 
 	itemLockedParams := sceneitems.SetSceneItemLockedParams{
 		SceneName:       it.Scene.Name,
 		SceneItemId:     float64(it.Id),
 		SceneItemLocked: &it.Locked,
 	}
-	_, err = it.OBS.Items.SetSceneItemLocked(&itemLockedParams)
+	_, err = it.OBS.SceneItems.SetSceneItemLocked(&itemLockedParams)
 
 	// NOTE: This is really awkward, the scenes.SceneItem object stores both Id
 	// and Index as int, but expects to pass it as float64.
@@ -309,14 +310,14 @@ func (it Item) Update() (Item, bool) {
 		SceneItemId:    float64(it.Id),
 		SceneItemIndex: float64(it.Index),
 	}
-	_, err = it.OBS.Items.SetSceneItemIndex(&itemIndexParams)
+	_, err = it.OBS.SceneItems.SetSceneItemIndex(&itemIndexParams)
 
 	itemBlendModeParams := sceneitems.SetSceneItemBlendModeParams{
 		SceneName:          it.Scene.Name,
 		SceneItemId:        float64(it.Id),
 		SceneItemBlendMode: Normal.String(),
 	}
-	_, err = it.OBS.Items.SetSceneItemBlendMode(&itemBlendModeParams)
+	_, err = it.OBS.SceneItems.SetSceneItemBlendMode(&itemBlendModeParams)
 
 	// TODO: Either
 	//   1) will need to create our own transform object
@@ -364,7 +365,7 @@ func (it *Item) Cache() (*Item, bool) {
 
 		for _, scene := range apiResponse.Scenes {
 			if it.Scene.HasName(scene.SceneName) {
-				apiResponse, err := it.OBS.Items.GetSceneItemList(&sceneitems.GetSceneItemListParams{SceneName: scene.SceneName})
+				apiResponse, err := it.OBS.SceneItems.GetSceneItemList(&sceneitems.GetSceneItemListParams{SceneName: scene.SceneName})
 				if err == nil {
 					for _, item := range apiResponse.SceneItems {
 						if it.HasName(item.SourceName) {

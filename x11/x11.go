@@ -2,6 +2,7 @@ package x11
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 	"time"
 
@@ -46,28 +47,40 @@ func (x *X11) HasActiveWindowChanged() bool {
 // would be far better
 
 func (x *X11) ActiveWindow() Window {
+	var err error
 	// TODO: This returns an x.Window object which can get all sorts of
 	// information beyond just the name, like the PID. We shouldn't need a second
 	// call at all to get the title of the window, thats absurdist.
 	activeWindow, err := ewmh.GetActiveWindow(x.Client).Reply(x.Client)
 	if err != nil {
-		fmt.Println("error(ewmh.GetActiveWindow(x.Client)...):", err)
-		return UndefinedWindow
+		panic(err)
 	}
 
 	fmt.Printf("active_window: %v\n", activeWindow)
 
 	// TODO: Do we actually need to do GetWMName? Shouldn't we actually do the
 	// GetWindowInfo thing so we get it and much more information we could cache
-
-	activeWindowTitle, err := ewmh.GetWMName(x.Client, activeWindow).Reply(x.Client)
+	activeWindowTitle, err := ewmh.GetWMName(
+		x.Client,
+		activeWindow,
+	).Reply(x.Client)
 	if err != nil {
-		fmt.Println("error(ewmh.GetWMName(x.Client, windowName)...):", err)
-		return UndefinedWindow
+		panic(err)
 	}
 
+	pid, err := ewmh.GetWMPid(x.Client, activeWindow).Reply(x.Client)
+	if err != nil {
+		panic(err)
+	} else {
+		fmt.Printf("\tPid:%v\n", pid)
+		data, _ := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
+		fmt.Printf("\t\tCmdline: %v\n", data)
+	}
+
+	// TODO: Maybe have a cache window data or some such func
 	cachedWindow := Window{
 		Title: activeWindowTitle,
+		PID:   pid,
 	}
 
 	// TODO: Switch case to determine the window type, this will be useful for

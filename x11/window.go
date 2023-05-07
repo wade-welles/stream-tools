@@ -30,6 +30,10 @@ import (
 
 // This gets a list of windows (aka ClientList)
 
+//type Desktops []*Desktop
+//
+//type Desktop Windows
+
 type Windows []*Window
 
 // TODO: Maybe desktop, always on top, always on desktop, etc, definitely
@@ -112,33 +116,35 @@ const (
 	Other
 )
 
-func (wt WindowType) String() string {
-	switch wt {
-	case Terminal:
-		return "terminal"
-	case Browser:
-		return "browser"
-	case Other:
-		return "other"
-	default: // UndefinedType
-		return "undefined"
-	}
-}
+//func (wt WindowType) String() string {
+//	switch wt {
+//	case Terminal:
+//		return "terminal"
+//	case Browser:
+//		return "browser"
+//	case Other:
+//		return "other"
+//	default: // UndefinedType
+//		return "undefined"
+//	}
+//}
+//
+//func MarshalWindowType(wt string) WindowType {
+//	switch strings.ToLower(wt) {
+//	case Terminal.String():
+//		return Terminal
+//	case Browser.String():
+//		return Browser
+//	case Other.String():
+//		return Other
+//	default:
+//		return UndefinedType
+//	}
+//}
 
-func MarshalWindowType(wt string) WindowType {
-	switch strings.ToLower(wt) {
-	case Terminal.String():
-		return Terminal
-	case Browser.String():
-		return Browser
-	case Other.String():
-		return Other
-	default:
-		return UndefinedType
-	}
-}
+//primaryWindow.TitleSuffixIs("chromium")
 
-func (w *Window) WindowTitleSuffixIs(searchText string) bool {
+func (w *Window) TitleSuffixIs(searchText string) bool {
 	return strings.HasSuffix(strings.ToLower(w.Title), searchText)
 }
 

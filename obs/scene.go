@@ -74,6 +74,8 @@ func (sc Scene) ItemNameContains(searchText string) (*Item, bool) {
 }
 
 func (sc *Scene) HasName(name string) bool {
+	fmt.Printf("name(%v)\n", name)
+	fmt.Printf("sc(%v)\n", sc)
 	return len(sc.Name) == len(name) && sc.Name == name
 }
 

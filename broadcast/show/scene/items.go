@@ -1,9 +1,5 @@
 package scene
 
-import (
-	obs "github.com/wade-welles/streamkit/obs"
-)
-
 type Item struct {
 	Id   string
 	Name string
@@ -18,7 +14,3 @@ type Items []*Item
 //	fmt.Printf("streamkit/show/scenes\n")
 //	return i
 //}
-
-func (it Item) Show() *obs.Show {
-	return &obs.Show{}
-}

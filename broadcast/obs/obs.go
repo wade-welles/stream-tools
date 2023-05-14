@@ -103,21 +103,6 @@ func ConnectToOBS(host string) *goobs.Client {
 	return client
 }
 
-func (c *Client) ParseShow(showName string) (*Show, error) {
-	fmt.Printf("ParseShow ran...\n")
-	return &Show{
-		Name: showName,
-		//Scenes: Scenes{}, // TODO: Maybe populate on initialization
-		OBS: c.WS,
-		//ShowAPI: &ShowAPI{
-		//	Scenes: &scenes.Client{Client: c.WS.Client},
-		//	Items:  &sceneitems.Client{Client: c.WS.Client},
-		//},
-	}, nil
-	//return &Show{}, nil
-	//return nil, fmt.Errorf("failed to parse show: '%v'", showName)
-}
-
 // TODO: Item type ideally should have group or folder in here but these are
 //
 //	the ones from OBS; so itd probably need to be separate from our
@@ -137,17 +122,6 @@ func MarshalItemType(itemType string) ItemType {
 	}
 }
 
-// TODO: We could use len of Items being greater than one to determine
-//
-//	if a given item is a folder (or group using OBS naming) but
-//	an item can be a folder (or group) without any items and is
-//	still a groupppp
-//
-//	but keep in mind we didnt want to have to implement a special
-//	enumerator or worse have a bool thats like IsGroup or IsFolder
-//
-//	ideally we keep all that logix with just using our nesting of
-//	items recursively
 type BlendMode uint8
 
 const (
@@ -199,8 +173,7 @@ func MarshalBlendMode(mode string) BlendMode {
 //          obs.Show.Scenes.First().Items.First().(Show()|.Hide())
 
 type Client struct {
-	WS   *goobs.Client
-	Show *Show
+	WS *goobs.Client
 
 	// TODO: We want OBS to reflect whats running in the application and Show is
 	// our local cache of it

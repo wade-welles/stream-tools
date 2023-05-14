@@ -26,64 +26,12 @@ type Broadcast struct {
 	// client.Scenes.GetSceneList()
 }
 
-//type Shows []*Show
-
-func (sh *Broadcast) ParseScene(name string) (*Scene, error) {
-	// Validation
-	// TODO: This may be completely unncessary now that we clear the show.Scenes
-	// and then iterate over the apiResponse and rebuild each of them
-	//if _, ok := sh.Scene(name); ok {
-	//	fmt.Printf("Scene already exists, skipping (should update rly)\n")
-	//	return sh.Scenes.Name(name)
-	//}
-
-	fmt.Printf("ParseScene ran...\n")
-
-	parsedScene := &Scene{
-		Show: sh,
-		Name: name,
-	}
-
-	fmt.Printf("parsedScene.Name: %v\n", parsedScene.Name)
-
-	//parsedScene.Cache()
-
-	// TODO: Somehwere here we should be iterating over the scene items and adding
-	// them before we append the scene to the show. Otherwise we have to iterate
-	// over each of the show.Scenes and get their items.
-
-	sh.Scenes = append(sh.Scenes, parsedScene)
-	return parsedScene, nil
-}
-
-func (sh Show) Scene(sceneName string) (*Scene, bool) {
-	fmt.Printf("sh.Scenes.Name(sceneName): and sceneName is %v\n", sceneName)
-	// TODO: So the problem is when we hit this, Scenes doesn't exist properly
-	if sh.Scenes == nil {
-		fmt.Printf("scenes was nil\n")
-		sh.Scenes = Scenes{}
-	} else {
-		fmt.Printf("scenes was nil\n")
-	}
-
-	return sh.Scenes.Name(sceneName)
-}
-
-func (sh Show) SceneNames() (sceneNames []string) {
-	for _, scene := range sh.Scenes {
-		sceneNames = append(sceneNames, scene.Name)
-	}
-	return sceneNames
-}
-
-// TODO: We should either make this CacheScenes() or make it cache both Scenes,
-// and then their items
-func (sh *Show) Cache() bool {
+func (bc *Broadcast) Cache() bool {
 	// NOTE: For simplicity, for now we will just set scenes to empty and then
 	// populate with API data. So we set show.Scenes to an empty slice of scenes
-	sh.Scenes = Scenes{}
+	bc.Scenes = Scenes{}
 
-	apiScenesResponse, err := sh.OBS.Scenes.GetSceneList()
+	apiScenesResponse, err := bc.OBS.Scenes.GetSceneList()
 	if err != nil {
 		fmt.Printf("error(%v)\n", err)
 	}
@@ -107,7 +55,7 @@ func (sh *Show) Cache() bool {
 	fmt.Printf("  scenes:\n")
 	//
 	for _, scene := range apiScenesResponse.Scenes {
-		apiResponse, err := sh.OBS.SceneItems.GetSceneItemList(
+		apiResponse, err := bc.OBS.SceneItems.GetSceneItemList(
 			&sceneitems.GetSceneItemListParams{
 				SceneName: scene.SceneName,
 			})
@@ -134,21 +82,21 @@ func (sh *Show) Cache() bool {
 // in show we keep our data object without any logic related to interacting with
 // goobs separate, then its easier to swap it out
 
-func (sh *Show) PrintDebug() {
-	fmt.Printf("show: \n")
-	fmt.Printf("  object: %v\n", sh)
-	// Breaks here because no scenes, its not even set to empty
-	fmt.Printf("  scenes: %v\n", sh.Scenes)
-	fmt.Printf("  scene_count: %v\n", len(sh.Scenes))
-	for _, scene := range sh.Scenes {
-		fmt.Printf("    scene:\n")
-		fmt.Printf("      name: %v\n", scene.Name)
-		fmt.Printf("      item_count: %v\n", len(scene.Items))
-		fmt.Printf("      items:\n")
-		for _, item := range scene.Items {
-			fmt.Printf("      item:\n")
-			fmt.Printf("        name: %v\n", item.Name)
-		}
-	}
-
-}
+//func (sh *Show) PrintDebug() {
+//	fmt.Printf("show: \n")
+//	fmt.Printf("  object: %v\n", sh)
+//	// Breaks here because no scenes, its not even set to empty
+//	fmt.Printf("  scenes: %v\n", sh.Scenes)
+//	fmt.Printf("  scene_count: %v\n", len(sh.Scenes))
+//	for _, scene := range sh.Scenes {
+//		fmt.Printf("    scene:\n")
+//		fmt.Printf("      name: %v\n", scene.Name)
+//		fmt.Printf("      item_count: %v\n", len(scene.Items))
+//		fmt.Printf("      items:\n")
+//		for _, item := range scene.Items {
+//			fmt.Printf("      item:\n")
+//			fmt.Printf("        name: %v\n", item.Name)
+//		}
+//	}
+//
+//}

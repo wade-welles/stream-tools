@@ -5,17 +5,21 @@ import (
 	"strings"
 	"time"
 
-	obs "github.com/wade-welles/streamkit/obs"
+	broadcast "github.com/wade-welles/streamkit/broadcast"
+	obs "github.com/wade-welles/streamkit/broadcast/obs"
+	scene "github.com/wade-welles/streamkit/broadcast/show/scene"
+
 	x11 "github.com/wade-welles/streamkit/x11"
 )
 
 type Toolkit struct {
 	// NOTE: Short-poll rate [we will rewrite without short polling after]
-	Delay  time.Duration
-	OBS    *obs.Client
-	X11    *x11.X11
-	Show   *obs.Show
-	Shows  []*obs.Show // could be linked list
+	Delay time.Duration
+	OBS   *obs.Client
+	X11   *x11.X11
+	// TODO: Our local copy of the show is entirely separate from obs.Client so we
+	// can change that out while maintaining logic and a data object
+	Show   *broadcast.Show
 	Config map[string]string
 }
 
@@ -33,20 +37,17 @@ func New() (toolkit *Toolkit) {
 		"obs_host": "192.168.1.1:4444",
 	}
 
-	emptyScenes := make([]*obs.Scene, 0)
 	wsAPI := obs.ConnectToOBS(showConfig["obs_host"])
 
 	toolkit = &Toolkit{
 		Config: showConfig,
-		Show: &obs.Show{
-			Scenes: emptyScenes,
+		Show: &broadcast.Show{
+			Scenes: make([]*scene.Scene, 0),
 		},
 		OBS: &obs.Client{
 			WS: wsAPI,
-			Show: &obs.Show{
-				OBS:    wsAPI,
-				Scenes: emptyScenes,
-			},
+			//Mode: this is studio vs direct stream which is USELESS
+			// ui concept only really
 		},
 		X11: &x11.X11{
 			Client: x11.ConnectToX11(),

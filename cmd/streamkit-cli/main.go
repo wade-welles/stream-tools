@@ -20,9 +20,47 @@ func main() {
 		Name:        "streamkit-service",
 		Description: "A long running streaming service toolkit",
 		Version:     cli.Version{Major: 0, Minor: 1, Patch: 0},
+		Commands: cli.Commands(
+			cli.Command{
+				Name:        "obs",
+				Alias:       "o",
+				Description: "show and item in the list",
+				Subcommands: cli.Commands(
+					cli.Command{
+						Name:        "scene",
+						Alias:       "s",
+						Description: "interaction with new scene object",
+						Subcommands: cli.Commands(
+							cli.Command{
+								Name:  "list",
+								Alias: "l",
+								Action: func(c *cli.Context) error {
+
+									toolkit.OBS.Show.PrintDebug()
+
+									toolkit.OBS.Show.Cache()
+
+									//for _, scene := range toolkit.OBS.Show.SceneNames() {
+
+									//	fmt.Printf("scene: name(%v)\n", scene)
+									//	// TODO: Now we need the scene to have items
+									//}
+
+									// TODO should do Actions:
+									// now we have a simpler tool to test our stupid abstraction
+									// god i <3 myself obvio 1
+									return nil
+								},
+							},
+						),
+					},
+				),
+			},
+		),
 		Actions: cli.Actions{
 			OnStart: func(c *cli.Context) error {
 				c.CLI.Log("OnStart action")
+				//toolkit.
 				return nil
 			},
 			Fallback: func(c *cli.Context) error {

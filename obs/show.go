@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	goobs "github.com/andreykaipov/goobs"
+	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
 )
 
 //type API struct {
@@ -88,56 +89,78 @@ func (sh Show) SceneNames() (sceneNames []string) {
 
 // TODO: We should either make this CacheScenes() or make it cache both Scenes,
 // and then their items
-func (sh *Show) Cache() (*Show, bool) {
+func (sh *Show) Cache() bool {
 
 	// NOTE: For simplicity, for now we will just set scenes to empty and then
 	// populate with API data. So we set show.Scenes to an empty slice of scenes
 	sh.Scenes = Scenes{}
 
-	if apiResponse, err := sh.OBS.Scenes.GetSceneList(); err == nil {
+	apiScenesResponse, err := sh.OBS.Scenes.GetSceneList()
+	if err != nil {
+		fmt.Printf("error(%v)\n", err)
+	}
+	// apiResponse == type GetSceneListResponse struct {
+	// 	CurrentPreviewSceneName string `json:"currentPreviewSceneName,omitempty"`
+	// 	CurrentProgramSceneName string `json:"currentProgramSceneName,omitempty"`
+	// 	Scenes []*typedefs.Scene `json:"scenes,omitempty"`
+	// }
 
-		// apiResponse == type GetSceneListResponse struct {
-		// 	CurrentPreviewSceneName string `json:"currentPreviewSceneName,omitempty"`
-		// 	CurrentProgramSceneName string `json:"currentProgramSceneName,omitempty"`
-		// 	Scenes []*typedefs.Scene `json:"scenes,omitempty"`
-		// }
+	// TODO: Instead of iterating over the obs scene names and then using that
+	// to look it up, lets just see if we can iterate over the scenes in the API
+	// and then append the parsed version of those to append
 
-		// TODO: Instead of iterating over the obs scene names and then using that
-		// to look it up, lets just see if we can iterate over the scenes in the API
-		// and then append the parsed version of those to append
-
-		// TODO: Its a way,... right?? ?? hello ?
-		//obsSceneNames := []string{}
-		//cachedSceneNames := []string{}
-		//for _, cachedScene := range sh.Scenes {
-		//	cachedSceneNames = append(cachedSceneNames, cachedScene.Name)
-		//}
-
-		for _, scene := range apiResponse.Scenes {
-			//obsSceneNames = append(obsSceneNames, scene.SceneName)
-
-			//if cachedScene, ok := sh.Scene(scene.SceneName); ok {
-			//	cachedScene.Cache()
-			//} else {
-			newScene, err := sh.ParseScene(scene.SceneName)
-			if err != nil {
-				panic(err)
-			}
-
-			fmt.Printf("new_scene: \n")
-			fmt.Printf("  name: %v\n", newScene.Name)
-			fmt.Printf("  item_count: %v\n", len(newScene.Items))
-			// NOTE: Here we would create a cached scene from the data that
-			//       does exist in the OBS state
-			//       And left over scenes would need to be purged
-			//         Again, just clearing and rebuilding seems easier;
-			//         but we would likely lose data since our models are
-			//         more complex than the OBS data models
-			//}
+	// TODO: Its a way,... right?? ?? hello ?
+	//obsSceneNames := []string{}
+	//cachedSceneNames := []string{}
+	//for _, cachedScene := range sh.Scenes {
+	//	cachedSceneNames = append(cachedSceneNames, cachedScene.Name)
+	//}
+	fmt.Printf("show:\n")
+	fmt.Printf("  scenes:\n")
+	//
+	for _, scene := range apiScenesResponse.Scenes {
+		apiResponse, err := sh.OBS.SceneItems.GetSceneItemList(
+			&sceneitems.GetSceneItemListParams{
+				SceneName: scene.SceneName,
+			})
+		if err != nil {
+			fmt.Printf("error(%v)\n", err)
 		}
 
-		return sh, len(sh.Scenes) == len(apiResponse.Scenes)
-	} else {
-		return sh, false
+		fmt.Printf("      scene:\n")
+		fmt.Printf("        object: %v\n", scene)
+		//fmt.Printf("        item_count: %v\n", len(apiResponse.SceneItems))
+		fmt.Printf("        items:\n")
+		fmt.Printf("          object: %v\n", apiResponse)
+		for _, sceneItem := range apiResponse.SceneItems {
+			fmt.Printf("          item: \n")
+			fmt.Printf("            object: %v\n", sceneItem)
+		}
 	}
+	//return sh, len(sh.Scenes) == len(apiResponse.Scenes)
+
+	return false
+}
+
+// what goes in/ what goes out?
+// in show we keep our data object without any logic related to interacting with
+// goobs separate, then its easier to swap it out
+
+func (sh *Show) PrintDebug() {
+	fmt.Printf("show: \n")
+	fmt.Printf("  object: %v\n", sh)
+	// Breaks here because no scenes, its not even set to empty
+	fmt.Printf("  scenes: %v\n", sh.Scenes)
+	fmt.Printf("  scene_count: %v\n", len(sh.Scenes))
+	for _, scene := range sh.Scenes {
+		fmt.Printf("    scene:\n")
+		fmt.Printf("      name: %v\n", scene.Name)
+		fmt.Printf("      item_count: %v\n", len(scene.Items))
+		fmt.Printf("      items:\n")
+		for _, item := range scene.Items {
+			fmt.Printf("      item:\n")
+			fmt.Printf("        name: %v\n", item.Name)
+		}
+	}
+
 }

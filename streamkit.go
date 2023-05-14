@@ -65,50 +65,26 @@ func New() (toolkit *Toolkit) {
 
 	//toolkit.OBS.Show.OBS.Scenes = &scenes.Client{Client: t.OBS.WS}
 	//toolkit.OBS.Show.OBS.Items =
-	//	toolkit.OBS.Show.Cache()
+	toolkit.OBS.Show.Cache()
+
 	toolkit.X11.InitActiveWindow()
 	return toolkit
 }
 
 func (t Toolkit) HandleWindowEvents() {
-	parsedShow, err := t.OBS.ParseShow(t.Config["name"])
-	if err != nil {
-		panic(err)
-	} else {
-		fmt.Printf("parsedShow: %v\n", parsedShow)
-	}
+	parsedShow := t.OBS.Show
 
 	fmt.Printf(
 		"number of scenes parsed from parsedShow object: %v\n",
 		parsedShow.Scenes,
 	)
 
-	parsedShow.ParseScene("primary")
+	scene, _ := parsedShow.ParseScene("Primary")
+	fmt.Printf("scene(%v)\n", scene)
 
 	parsedShow.Cache()
 
-	fmt.Printf(
-		"Scenes len of show, this is wrong show likley: %v\n",
-		len(parsedShow.Scenes),
-	)
-
-	fmt.Printf("t.OBS: %v\n", t.OBS.Show)
-	fmt.Printf("t.OBS.Show: %v\n", t.OBS.Show)
-
-	// Breaks here because no scenes, its not even set to empty
-	fmt.Printf("t.OBS.Show.Scenes: %v\n", t.OBS.Show.Scenes)
-
-	fmt.Printf("Number of scenes parsed: %v\n", len(t.OBS.Show.Scenes))
-	for _, scene := range t.OBS.Show.Scenes {
-		fmt.Printf("scene:\n")
-		fmt.Printf("  name: %v\n", scene.Name)
-		fmt.Printf("  item_count: %v\n", len(scene.Items))
-		fmt.Printf("  items:\n")
-		for _, item := range scene.Items {
-			fmt.Printf("    item:\n")
-			fmt.Printf("      name: %v\n", item.Name)
-		}
-	}
+	parsedShow.PrintDebug()
 
 	// this is returning
 	// sh.Scenes.Name(sceneName): and sceneName is Primary, so we get 1 out of 4
@@ -157,6 +133,7 @@ func (t Toolkit) HandleWindowEvents() {
 		select {
 		case <-tick:
 			if t.X11.HasActiveWindowChanged() {
+				// TODO:
 				time.Sleep(4 * time.Second)
 
 				currentScene := t.OBS.Show.Current
@@ -185,6 +162,8 @@ func (t Toolkit) HandleWindowEvents() {
 						//	chromiumWindow.Unhide().Lock().Update()
 						//}
 					default: // UndefinedName
+						// TODO: This will error out if for example you select a window from
+						// a parent VM in Multiverse so kinda annoying
 						// TODO: We should never allow this condition to ever occur, and by
 						// doing that we optimize it further bc we are not checking conditions
 						// that we dont want to begin with

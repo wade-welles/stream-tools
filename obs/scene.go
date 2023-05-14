@@ -74,15 +74,26 @@ func (sc Scene) ItemNameContains(searchText string) (*Item, bool) {
 }
 
 func (sc *Scene) HasName(name string) bool {
-	fmt.Printf("name(%v)\n", name)
-	fmt.Printf("sc(%v)\n", sc)
-	return len(sc.Name) == len(name) && sc.Name == name
+	//fmt.Printf("name(%v)\n", name)
+	//fmt.Printf("sc(%v)\n", sc)
+	// NOTE: Now it works switching to a window outside the scope of the VM and go
+	// back to tracking active window
+	return sc != nil && sc.Name == name
 }
+
+//func (sc *Scene) Cache() bool {
+//
+//	//sc.Items
+//	return false
+//}
 
 // TODO: The OBS ws api should be interacted with through Update() alone
 //
 //	and not scattered through the code so its really hard to maintain
 func (sc Scene) Update() bool {
+
+	// ?? what could posibly be the possible, Update() should be Cache()
+	//
 	// TODO: No real easy way to do this unless perhaps updating scene
 	//       list at once or deleting and re-creating?
 	//         Almost certainly want to use delete and recreate since

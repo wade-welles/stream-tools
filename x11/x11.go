@@ -83,12 +83,12 @@ func (x *X11) ActiveWindow() *Window {
 		activeWindow,
 	).Reply(x.Client)
 	if err != nil {
-		panic(err)
+		fmt.Printf("error(%v)\n", err)
 	}
 
 	pid, err := ewmh.GetWMPid(x.Client, activeWindow).Reply(x.Client)
 	if err != nil {
-		panic(err)
+		fmt.Printf("error(%v)\n", err)
 	} else {
 		fmt.Printf("\tPid:%v\n", pid)
 		data, _ := ioutil.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))

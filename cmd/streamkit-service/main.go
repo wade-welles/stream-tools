@@ -22,14 +22,9 @@ func main() {
 		Version:     cli.Version{Major: 0, Minor: 1, Patch: 0},
 		Actions: cli.Actions{
 			OnStart: func(c *cli.Context) error {
-				c.CLI.Log("OnStart action: streamkit.HandleWindowEvents()")
 				streamkit.HandleWindowEvents()
 				return nil
 			},
-			//OnExit: func(c *cli.Context) error {
-			//	c.CLI.Log("on exit action")
-			//	return nil
-			//},
 		},
 	})
 

@@ -21,6 +21,5 @@ type Show struct {
 func (sh *Show) EmptyScene() *show.Scene {
 	return &show.Scene{
 		Name: "",
-		Show: sh,
 	}
 }

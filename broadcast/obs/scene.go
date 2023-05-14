@@ -5,6 +5,7 @@ import (
 	"time"
 
 	goobs "github.com/andreykaipov/goobs"
+
 	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
 	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
 	typedefs "github.com/andreykaipov/goobs/api/typedefs"
@@ -74,63 +75,10 @@ func (sc Scene) ItemNameContains(searchText string) (*Item, bool) {
 }
 
 func (sc *Scene) HasName(name string) bool {
-	//fmt.Printf("name(%v)\n", name)
-	//fmt.Printf("sc(%v)\n", sc)
-	// NOTE: Now it works switching to a window outside the scope of the VM and go
-	// back to tracking active window
 	return sc != nil && sc.Name == name
 }
 
-//func (sc *Scene) Cache() bool {
-//
-//	//sc.Items
-//	return false
-//}
-
-// TODO: The OBS ws api should be interacted with through Update() alone
-//
-//	and not scattered through the code so its really hard to maintain
-func (sc Scene) Update() bool {
-
-	// ?? what could posibly be the possible, Update() should be Cache()
-	//
-	// TODO: No real easy way to do this unless perhaps updating scene
-	//       list at once or deleting and re-creating?
-	//         Almost certainly want to use delete and recreate since
-	//         no clear edit of Scene; just item
-	return false
-}
-
-//func (sc *Scene) Preview() (*Scene, bool) {
-//	apiRequest := studiomode.SetPreviewSceneParams{
-//		SceneName: sc.Name,
-//	}
-//
-//	_, err := sc.OBS.StudioMode.SetPreviewScene(&apiRequest)
-//	if err == nil {
-//		sc.IsPreviewed = true
-//		sc.Show.Preview = sc
-//	}
-//
-//	return sc, err == nil
-//
-//}
-
-// obs.Scenes.First().Preview() => sets the preview in studiomode
-//func (sc Scene) Preview() error {
-//	_, err := sc.OBS.StudioMode.SetPreviewScene(
-//		studiomode.SetPreviewSceneParams{
-//			SceneName: sc.Name,
-//		},
-//	)
-//	return err
-//}
-
-// NOTE: Alias
-// TODO: Maybe pass ID through and use that to lookup via *api.Client access to
-// Items of the scene
 func (sc *Scene) ParseItem(item *typedefs.SceneItem) (*Item, error) {
-
 	//func ParseItem(scene *Scene, item *typedefs.SceneItem) (*Item, bool) {
 	// TODO: Should be validation on if scene/item already exists
 	parsedItem := &Item{
@@ -168,62 +116,13 @@ func (sc *Scene) ParseItem(item *typedefs.SceneItem) (*Item, error) {
 
 	parsedItem.Cache()
 
-	// TODO We only get if its a group, then presumably we do a GetSources or
-	// GetSceneItems on this specific scene item because its a group, meaning it
-	// has items that need to be parsed
-
-	// TODO: There is a GetGroupList() now too; look into that
-
-	//if item.IsGroup {
-	//	parsedItem.Parent, _ = scene.Item(item.ParentGroupName)
-	//} else if len(item.ParentGroupName) == 0 {
-	//	scene.Items = append(scene.Items, parsedItem)
-	//} else if 0 < len(item.GroupChildren) {
-	//	for _, childItem := range item.GroupChildren {
-	//		parsedChildItem, _ := ParseItem(scene, childItem)
-	//		parsedItem.Items = append(parsedItem.Items, parsedChildItem)
-	//	}
-	//}
-
 	return parsedItem, nil
 }
 
 type Items []*Item
 
-// NOTE: A recursive calling of Name to check child items is preferred
-//       but OBS folders/grouping only supports 1 level so this is
-//       adequate
-//       And OBS does not support duplicate item naming (or scene)
-
-// TODO: Add ability to pull item based on a search term so we can pull out
-// something with an overly complex name like "Primary Terminal (VIM Window)"
-// but we want to just be able to check if it has for example "VIM" in the name
-
-// TODO:
-//
-//	type GetSceneItemListParams (goobs) to request the []*SceneItem
 func (sc *Scene) Cache() (*Scene, bool) {
 	fmt.Printf("caching scene, and its associated items...")
-	// GetSceneItemPropertiesParams represents the params body for the "GetSceneItemProperties" request.
-	// Gets the scene specific properties of the specified source item.
-
-	//if apiResponse, err := sc.OBS.Scenes.GetSceneList(); err == nil {
-
-	//if currentScene, ok := sc.Show.Scene(apiResponse.CurrentProgramSceneName); ok {
-	//	sc.Show.Current = currentScene
-	//}
-
-	//for _, scene := range apiResponse.Scenes {
-	// TODO: Scene no longer comes with its sources
-	//if sc.HasName(scene.SceneName) {
-	//	fmt.Printf("local scene cache, still exists in obs...\n")
-	//	fmt.Printf("but doing nothing because scenes no longer contain their sources")
-	//}
-
-	// TODO This is not *api.Client but *goobs.Client which makes the typecast not
-	// work
-	// NOTE: Lets benchmark this against a direct OBSClient object
-	// GetSceneItemListResponse
 	apiResponse, err := sc.Show.OBS.SceneItems.GetSceneItemList(
 		&sceneitems.GetSceneItemListParams{
 			SceneName: sc.Name,
@@ -240,15 +139,10 @@ func (sc *Scene) Cache() (*Scene, bool) {
 	sc.Items = Items{}
 
 	// NOTE: Repopulate scene items
-
 	for _, item := range apiResponse.SceneItems {
 		sc.ParseItem(item)
 	}
 
-	//return sc, true
-
-	//}
-	//}
 	return sc, false
 }
 

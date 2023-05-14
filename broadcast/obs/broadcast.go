@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	goobs "github.com/andreykaipov/goobs"
+
 	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
 )
 
@@ -73,30 +74,6 @@ func (bc *Broadcast) Cache() bool {
 			fmt.Printf("            object: %v\n", sceneItem)
 		}
 	}
-	//return sh, len(sh.Scenes) == len(apiResponse.Scenes)
 
-	return false
+	return true
 }
-
-// what goes in/ what goes out?
-// in show we keep our data object without any logic related to interacting with
-// goobs separate, then its easier to swap it out
-
-//func (sh *Show) PrintDebug() {
-//	fmt.Printf("show: \n")
-//	fmt.Printf("  object: %v\n", sh)
-//	// Breaks here because no scenes, its not even set to empty
-//	fmt.Printf("  scenes: %v\n", sh.Scenes)
-//	fmt.Printf("  scene_count: %v\n", len(sh.Scenes))
-//	for _, scene := range sh.Scenes {
-//		fmt.Printf("    scene:\n")
-//		fmt.Printf("      name: %v\n", scene.Name)
-//		fmt.Printf("      item_count: %v\n", len(scene.Items))
-//		fmt.Printf("      items:\n")
-//		for _, item := range scene.Items {
-//			fmt.Printf("      item:\n")
-//			fmt.Printf("        name: %v\n", item.Name)
-//		}
-//	}
-//
-//}

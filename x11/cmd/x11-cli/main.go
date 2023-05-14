@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wade-welles/x11"
+	x11 "github.com/wade-welles/x11"
 )
 
 type Application struct {

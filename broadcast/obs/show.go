@@ -17,29 +17,18 @@ import (
 //	Items  *sceneitems.Client
 //}
 
-// for adding/removing/lsiting/checking-if-present
-type Show struct {
-	OBS *goobs.Client
-
+type Broadcast struct {
+	OBS  *goobs.Client
 	Name string
-
-	Current *Scene
-	Preview *Scene
-
 	Mode []Mode
-
-	Scenes Scenes
-
+	// TODO: Obvio use our new
+	//Shows *Show
 	// client.Scenes.GetSceneList()
-
-	// Profile
-	// All items?
-	// History/Log of bumpers played (bgs used)
 }
 
-type Shows []*Show
+//type Shows []*Show
 
-func (sh *Show) ParseScene(name string) (*Scene, error) {
+func (sh *Broadcast) ParseScene(name string) (*Scene, error) {
 	// Validation
 	// TODO: This may be completely unncessary now that we clear the show.Scenes
 	// and then iterate over the apiResponse and rebuild each of them
@@ -90,7 +79,6 @@ func (sh Show) SceneNames() (sceneNames []string) {
 // TODO: We should either make this CacheScenes() or make it cache both Scenes,
 // and then their items
 func (sh *Show) Cache() bool {
-
 	// NOTE: For simplicity, for now we will just set scenes to empty and then
 	// populate with API data. So we set show.Scenes to an empty slice of scenes
 	sh.Scenes = Scenes{}

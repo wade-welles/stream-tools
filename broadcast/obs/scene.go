@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	goobs "github.com/andreykaipov/goobs"
-
 	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
 	scenes "github.com/andreykaipov/goobs/api/requests/scenes"
 	typedefs "github.com/andreykaipov/goobs/api/typedefs"
@@ -43,27 +41,23 @@ func (scs Scenes) Name(name string) (*Scene, bool) {
 type Scene struct {
 	Name string
 
-	Show *Show
+	Broadcast *Broadcast
 	// NOTE/TODO:
 	// vs scene.show.obs.client (3 pointer lookup of objects) taking the bit of
 	// extra memory to directly save OBSClient in scene, so it can access it
 	// without the jumps. Then we will benchmark these two options to demonstrate
 	// something about Go that is important
-	OBS   *goobs.Client
 	Items Items
 
 	IsCurrent   bool
 	IsPreviewed bool
 }
 
-// pass config?
-func NewEmptyScene(show *Show) (*Scene, error) {
-	// Needs to be minimal but still functional
+func NewEmptyScene(bc *Broadcast) *Scene {
 	return &Scene{
-		Name: "",
-		Show: show,
-		OBS:  show.OBS,
-	}, nil
+		Name:      "",
+		Broadcast: bc,
+	}
 }
 
 func (sc Scene) Item(name string) (*Item, bool) {
@@ -85,7 +79,7 @@ func (sc *Scene) ParseItem(item *typedefs.SceneItem) (*Item, error) {
 		// NOTE: Intentionally left out muted and volume to only keep that logic
 		//       in the audiomixer and its audio sources
 		// TODO: Store index because its the layer position and will be important
-		OBS: sc.OBS,
+		Broadcast: sc.Broadcast,
 		//OBS: &ShowAPI{
 		//	Scenes: &scenes.Client{Client: sc.Show.OBS.WS.Client},
 		//	Items:  &sceneitems.Client{Client: sc.Show.OBS.WS.Client},
@@ -123,7 +117,7 @@ type Items []*Item
 
 func (sc *Scene) Cache() (*Scene, bool) {
 	fmt.Printf("caching scene, and its associated items...")
-	apiResponse, err := sc.Show.OBS.SceneItems.GetSceneItemList(
+	apiResponse, err := sc.Broadcast.Client.SceneItems.GetSceneItemList(
 		&sceneitems.GetSceneItemListParams{
 			SceneName: sc.Name,
 		},
@@ -152,7 +146,7 @@ func (sc *Scene) Transition(sleepDuration ...time.Duration) (*Scene, bool) {
 		time.Sleep(sleepDuration[0])
 	}
 
-	_, err := sc.OBS.Scenes.SetCurrentProgramScene(
+	_, err := sc.Broadcast.Client.Scenes.SetCurrentProgramScene(
 		&scenes.SetCurrentProgramSceneParams{
 			SceneName: sc.Name,
 		},
@@ -160,7 +154,7 @@ func (sc *Scene) Transition(sleepDuration ...time.Duration) (*Scene, bool) {
 
 	if err == nil {
 		sc.IsCurrent = true
-		sc.Show.Current = sc
+		sc.Broadcast.Program = sc
 	}
 
 	return sc, err == nil

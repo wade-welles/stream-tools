@@ -19,20 +19,17 @@ import (
 //}
 
 type Broadcast struct {
-	OBS  *goobs.Client
-	Name string
-	Mode []Mode
-	// TODO: Obvio use our new
-	//Shows *Show
-	// client.Scenes.GetSceneList()
+	Client  *goobs.Client
+	Name    string
+	Mode    []Mode
+	Program *Scene
+	Studio  *Scene
 }
 
 func (bc *Broadcast) Cache() bool {
 	// NOTE: For simplicity, for now we will just set scenes to empty and then
 	// populate with API data. So we set show.Scenes to an empty slice of scenes
-	bc.Scenes = Scenes{}
-
-	apiScenesResponse, err := bc.OBS.Scenes.GetSceneList()
+	apiScenesResponse, err := bc.Client.Scenes.GetSceneList()
 	if err != nil {
 		fmt.Printf("error(%v)\n", err)
 	}
@@ -56,7 +53,7 @@ func (bc *Broadcast) Cache() bool {
 	fmt.Printf("  scenes:\n")
 	//
 	for _, scene := range apiScenesResponse.Scenes {
-		apiResponse, err := bc.OBS.SceneItems.GetSceneItemList(
+		apiResponse, err := bc.Client.SceneItems.GetSceneItemList(
 			&sceneitems.GetSceneItemListParams{
 				SceneName: scene.SceneName,
 			})
@@ -74,6 +71,5 @@ func (bc *Broadcast) Cache() bool {
 			fmt.Printf("            object: %v\n", sceneItem)
 		}
 	}
-
 	return true
 }

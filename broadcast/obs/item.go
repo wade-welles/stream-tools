@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	goobs "github.com/andreykaipov/goobs"
 	sceneitems "github.com/andreykaipov/goobs/api/requests/sceneitems"
 )
 
@@ -69,8 +68,8 @@ type Item struct {
 	Parent *Item
 	Items  Items
 
-	Scene *Scene
-	OBS   *goobs.Client
+	Scene     *Scene
+	Broadcast *Broadcast
 
 	LastCachedAt time.Time
 }
@@ -294,14 +293,14 @@ func (it Item) Update() (Item, bool) {
 	}
 	// TODO: Technically now we should be checking the returned values for changes
 	// to confirm the update was actually successful
-	_, err := it.OBS.SceneItems.SetSceneItemEnabled(&itemEnabledParams)
+	_, err := it.Broadcast.Client.SceneItems.SetSceneItemEnabled(&itemEnabledParams)
 
 	itemLockedParams := sceneitems.SetSceneItemLockedParams{
 		SceneName:       it.Scene.Name,
 		SceneItemId:     float64(it.Id),
 		SceneItemLocked: &it.Locked,
 	}
-	_, err = it.OBS.SceneItems.SetSceneItemLocked(&itemLockedParams)
+	_, err = it.Broadcast.Client.SceneItems.SetSceneItemLocked(&itemLockedParams)
 
 	// NOTE: This is really awkward, the scenes.SceneItem object stores both Id
 	// and Index as int, but expects to pass it as float64.
@@ -310,14 +309,14 @@ func (it Item) Update() (Item, bool) {
 		SceneItemId:    float64(it.Id),
 		SceneItemIndex: float64(it.Index),
 	}
-	_, err = it.OBS.SceneItems.SetSceneItemIndex(&itemIndexParams)
+	_, err = it.Broadcast.Client.SceneItems.SetSceneItemIndex(&itemIndexParams)
 
 	itemBlendModeParams := sceneitems.SetSceneItemBlendModeParams{
 		SceneName:          it.Scene.Name,
 		SceneItemId:        float64(it.Id),
 		SceneItemBlendMode: Normal.String(),
 	}
-	_, err = it.OBS.SceneItems.SetSceneItemBlendMode(&itemBlendModeParams)
+	_, err = it.Broadcast.Client.SceneItems.SetSceneItemBlendMode(&itemBlendModeParams)
 
 	// TODO: Either
 	//   1) will need to create our own transform object
@@ -361,11 +360,11 @@ func (it Item) Update() (Item, bool) {
 func (it *Item) Cache() (*Item, bool) {
 	// TODO: Maybe separate function to get Scene List; and make that
 	//       separate and then call it here to simplify this
-	if apiResponse, err := it.OBS.Scenes.GetSceneList(); err == nil {
+	if apiResponse, err := it.Broadcast.Client.Scenes.GetSceneList(); err == nil {
 
 		for _, scene := range apiResponse.Scenes {
 			if it.Scene.HasName(scene.SceneName) {
-				apiResponse, err := it.OBS.SceneItems.GetSceneItemList(&sceneitems.GetSceneItemListParams{SceneName: scene.SceneName})
+				apiResponse, err := it.Broadcast.Client.SceneItems.GetSceneItemList(&sceneitems.GetSceneItemListParams{SceneName: scene.SceneName})
 				if err == nil {
 					for _, item := range apiResponse.SceneItems {
 						if it.HasName(item.SourceName) {

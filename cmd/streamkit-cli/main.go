@@ -36,9 +36,11 @@ func main() {
 								Alias: "l",
 								Action: func(c *cli.Context) error {
 
-									toolkit.OBS.Show.PrintDebug()
-
-									toolkit.OBS.Show.Cache()
+									// TODO NEED TO FIX THIS
+									//toolkit.Show.PrintDebug()
+									//toolkit.Show.Cache()
+									// TODO: So initialize Show and obs.Client in the NewToolkit
+									// then cache it there too
 
 									//for _, scene := range toolkit.OBS.Show.SceneNames() {
 

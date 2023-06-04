@@ -1,13 +1,11 @@
 package streamkit
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
 	broadcast "github.com/wade-welles/streamkit/broadcast"
 	obs "github.com/wade-welles/streamkit/broadcast/obs"
-	scene "github.com/wade-welles/streamkit/broadcast/show/scene"
+	show "github.com/wade-welles/streamkit/broadcast/show"
 
 	x11 "github.com/wade-welles/streamkit/x11"
 )
@@ -42,7 +40,7 @@ func New() (toolkit *Toolkit) {
 	toolkit = &Toolkit{
 		Config: showConfig,
 		Show: &broadcast.Show{
-			Scenes: make([]*scene.Scene, 0),
+			Scenes: make([]*show.Scene, 0),
 		},
 		OBS: &obs.Client{
 			WS: wsAPI,
@@ -66,123 +64,124 @@ func New() (toolkit *Toolkit) {
 
 	//toolkit.OBS.Show.OBS.Scenes = &scenes.Client{Client: t.OBS.WS}
 	//toolkit.OBS.Show.OBS.Items =
-	toolkit.OBS.Show.Cache()
+	//toolkit.Show.Client = toolkit.OBS.WS
+	//toolkit.Show.Cache()
 
 	toolkit.X11.InitActiveWindow()
 	return toolkit
 }
 
-func (t Toolkit) HandleWindowEvents() {
-	parsedShow := t.OBS.Show
-
-	fmt.Printf(
-		"number of scenes parsed from parsedShow object: %v\n",
-		parsedShow.Scenes,
-	)
-
-	scene, _ := parsedShow.ParseScene("Primary")
-	fmt.Printf("scene(%v)\n", scene)
-
-	parsedShow.Cache()
-
-	parsedShow.PrintDebug()
-
-	// this is returning
-	// sh.Scenes.Name(sceneName): and sceneName is Primary, so we get 1 out of 4
-	// of the scene names loaded and no scenes?
-	fmt.Printf(".SceneNames(): %s\n", strings.Join(t.OBS.Show.SceneNames(), ", "))
-	fmt.Printf("len(.Scenenames()) %v\n", len(t.OBS.Show.SceneNames()))
-
-	// TODO Primary was based off a hardcoded window type
-
-	// TODO: THIS =========== LINE is where we are failing, it doesnt look up
-	// Primary so it panics
-
-	primaryScene, ok := parsedShow.Scene("Primary")
-	if ok {
-		// TODO: We need to cache or initialize the items in a given scene
-	} else {
-		panic(fmt.Errorf("failed to locate primary scene"))
-	}
-	bumperScene, ok := parsedShow.Scene("Bumper")
-	if !ok {
-		panic(fmt.Errorf("failed to locate bumper scene"))
-	}
-
-	// TODO: This lookup is not connecting with the parsed items when we are
-	// running .Cache() on each scene as its parsed in Show.Cache()
-	fmt.Printf("# of primaryScene items: %v\n", len(primaryScene.Items))
-	fmt.Printf("# of bumperScene items: %v\n", len(bumperScene.Items))
-
-	//vimWindowName := "Primary Terminal (VIM Window)"
-	//vimWindow, ok := primaryScene.Item(vimWindowName)
-	//if ok {
-	//	fmt.Printf("found vimWindow item: %v\n", vimWindow)
-	//} else {
-	//	panic(
-	//		fmt.Errorf(
-	//			"failed to find item '" + vimWindowName + "' within the primary scene",
-	//		),
-	//	)
-	//}
-
-	//consoleWindow, _ := primaryScene.Item("CONSOLE")
-	//chromiumWindow, _ := primaryScene.Item("CHROMIUM")
-
-	tick := time.Tick(t.Delay)
-	for {
-		select {
-		case <-tick:
-			if t.X11.HasActiveWindowChanged() {
-				// TODO:
-				time.Sleep(4 * time.Second)
-
-				currentScene := t.OBS.Show.Current
-				activeWindow := t.X11.ActiveWindow()
-
-				if currentScene.HasName("Primary") {
-					switch activeWindow.Type {
-					case x11.Terminal:
-						t.X11.CacheActiveWindow()
-						//if !vimWindow.Visible { // is it a terminal, and termainl ID or hash of some combo of things
-						//	bumperScene.Transition()
-						//	primaryScene.Transition(4 * time.Second)
-
-						//	chromiumWindow.Hide().Lock().Update()
-						//	vimWindow.Unhide().Lock().Update()
-						//	consoleWindow.Unhide().Lock().Update()
-						//}
-					case x11.Browser: // TODO: Change to is it a browser
-						t.X11.CacheActiveWindow()
-						//if !chromiumWindow.Visible {
-						//	bumperScene.Transition()
-						//	primaryScene.Transition(4 * time.Second)
-
-						//	vimWindow.Hide().Lock().Update()
-						//	consoleWindow.Unhide().Lock().Update()
-						//	chromiumWindow.Unhide().Lock().Update()
-						//}
-					default: // UndefinedName
-						// TODO: This will error out if for example you select a window from
-						// a parent VM in Multiverse so kinda annoying
-						// TODO: We should never allow this condition to ever occur, and by
-						// doing that we optimize it further bc we are not checking conditions
-						// that we dont want to begin with
-						fmt.Println("[undefined] active window?(%v)", t.X11.ActiveWindow())
-					}
-				} else {
-					fmt.Printf("current scene is not set to primary")
-
-				}
-			}
-			// TODO: Check what the active window currently is; then use obs-ws to
-			// change the scenes with the bumper in between
-		}
-	}
-
-	//time.Sleep(2 * time.Second)
-	//t.AvatarToggle()
-}
+//func (t Toolkit) HandleWindowEvents() {
+//	parsedShow := t.OBS.Broadcast
+//
+//	fmt.Printf(
+//		"number of scenes parsed from parsedShow object: %v\n",
+//		parsedShow.Scenes,
+//	)
+//
+//	scene, _ := parsedShow.ParseScene("Primary")
+//	fmt.Printf("scene(%v)\n", scene)
+//
+//	parsedShow.Cache()
+//
+//	parsedShow.PrintDebug()
+//
+//	// this is returning
+//	// sh.Scenes.Name(sceneName): and sceneName is Primary, so we get 1 out of 4
+//	// of the scene names loaded and no scenes?
+//	fmt.Printf(".SceneNames(): %s\n", strings.Join(t.OBS.Show.SceneNames(), ", "))
+//	fmt.Printf("len(.Scenenames()) %v\n", len(t.OBS.Show.SceneNames()))
+//
+//	// TODO Primary was based off a hardcoded window type
+//
+//	// TODO: THIS =========== LINE is where we are failing, it doesnt look up
+//	// Primary so it panics
+//
+//	primaryScene, ok := parsedShow.Scene("Primary")
+//	if ok {
+//		// TODO: We need to cache or initialize the items in a given scene
+//	} else {
+//		panic(fmt.Errorf("failed to locate primary scene"))
+//	}
+//	bumperScene, ok := parsedShow.Scene("Bumper")
+//	if !ok {
+//		panic(fmt.Errorf("failed to locate bumper scene"))
+//	}
+//
+//	// TODO: This lookup is not connecting with the parsed items when we are
+//	// running .Cache() on each scene as its parsed in Show.Cache()
+//	fmt.Printf("# of primaryScene items: %v\n", len(primaryScene.Items))
+//	fmt.Printf("# of bumperScene items: %v\n", len(bumperScene.Items))
+//
+//	//vimWindowName := "Primary Terminal (VIM Window)"
+//	//vimWindow, ok := primaryScene.Item(vimWindowName)
+//	//if ok {
+//	//	fmt.Printf("found vimWindow item: %v\n", vimWindow)
+//	//} else {
+//	//	panic(
+//	//		fmt.Errorf(
+//	//			"failed to find item '" + vimWindowName + "' within the primary scene",
+//	//		),
+//	//	)
+//	//}
+//
+//	//consoleWindow, _ := primaryScene.Item("CONSOLE")
+//	//chromiumWindow, _ := primaryScene.Item("CHROMIUM")
+//
+//	tick := time.Tick(t.Delay)
+//	for {
+//		select {
+//		case <-tick:
+//			if t.X11.HasActiveWindowChanged() {
+//				// TODO:
+//				time.Sleep(4 * time.Second)
+//
+//				currentScene := t.OBS.Show.Current
+//				activeWindow := t.X11.ActiveWindow()
+//
+//				if currentScene.HasName("Primary") {
+//					switch activeWindow.Type {
+//					case x11.Terminal:
+//						t.X11.CacheActiveWindow()
+//						//if !vimWindow.Visible { // is it a terminal, and termainl ID or hash of some combo of things
+//						//	bumperScene.Transition()
+//						//	primaryScene.Transition(4 * time.Second)
+//
+//						//	chromiumWindow.Hide().Lock().Update()
+//						//	vimWindow.Unhide().Lock().Update()
+//						//	consoleWindow.Unhide().Lock().Update()
+//						//}
+//					case x11.Browser: // TODO: Change to is it a browser
+//						t.X11.CacheActiveWindow()
+//						//if !chromiumWindow.Visible {
+//						//	bumperScene.Transition()
+//						//	primaryScene.Transition(4 * time.Second)
+//
+//						//	vimWindow.Hide().Lock().Update()
+//						//	consoleWindow.Unhide().Lock().Update()
+//						//	chromiumWindow.Unhide().Lock().Update()
+//						//}
+//					default: // UndefinedName
+//						// TODO: This will error out if for example you select a window from
+//						// a parent VM in Multiverse so kinda annoying
+//						// TODO: We should never allow this condition to ever occur, and by
+//						// doing that we optimize it further bc we are not checking conditions
+//						// that we dont want to begin with
+//						fmt.Println("[undefined] active window?(%v)", t.X11.ActiveWindow())
+//					}
+//				} else {
+//					fmt.Printf("current scene is not set to primary")
+//
+//				}
+//			}
+//			// TODO: Check what the active window currently is; then use obs-ws to
+//			// change the scenes with the bumper in between
+//		}
+//	}
+//
+//	//time.Sleep(2 * time.Second)
+//	//t.AvatarToggle()
+//}
 
 // TODO: Put this back together once we ahve scenes and items parsed
 //func (t Toolkit) AvatarToggle() {

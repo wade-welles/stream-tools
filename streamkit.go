@@ -8,7 +8,6 @@ import (
 	obs "github.com/wade-welles/streamkit/broadcast/obs"
 	show "github.com/wade-welles/streamkit/broadcast/show"
 
-	wayland "github.com/wade-welles/streamkit/wayland"
 	x11 "github.com/wade-welles/streamkit/x11"
 )
 
@@ -46,13 +45,13 @@ func New() (toolkit *Toolkit) {
 		//goobs.WithRequestHeader(http.Header{"User-Agent": []string{"goobs-e2e/0.0.0"}}),
 	)
 
-	wayland.WaylandTest()
+	//wayland.WaylandTest()
 
-	display, err := wayland.Connect("10.100.100.1")
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-	}
-	fmt.Printf("display: %v\n", display)
+	//display, err := wayland.Connect("10.100.100.1")
+	//if err != nil {
+	//	fmt.Printf("err: %v\n", err)
+	//}
+	//fmt.Printf("display: %v\n", display)
 
 	//fmt.Printf("before toolkit = &Toolkit\n")
 

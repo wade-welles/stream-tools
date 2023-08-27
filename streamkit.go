@@ -56,7 +56,7 @@ func New() (toolkit *Toolkit) {
 	//fmt.Printf("before toolkit = &Toolkit\n")
 
 	//fmt.Printf("trying ConnectToX11\n")
-	////x11.ConnectToX11()
+	x11Connection := x11.ConnectToX11()
 
 	toolkit = &Toolkit{
 		Config: showConfig,
@@ -69,7 +69,7 @@ func New() (toolkit *Toolkit) {
 			// ui concept only really
 		},
 		X11: &x11.X11{
-			//Client: ,
+			Client: x11Connection,
 		},
 		Delay: 1500 * time.Millisecond,
 	}

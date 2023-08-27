@@ -1,12 +1,14 @@
 package streamkit
 
 import (
+	"fmt"
 	"time"
 
 	broadcast "github.com/wade-welles/streamkit/broadcast"
 	obs "github.com/wade-welles/streamkit/broadcast/obs"
 	show "github.com/wade-welles/streamkit/broadcast/show"
 
+	wayland "github.com/wade-welles/streamkit/wayland"
 	x11 "github.com/wade-welles/streamkit/x11"
 )
 
@@ -26,16 +28,36 @@ type Toolkit struct {
 // should assumingly always be 127.0.0.1 whereas obs reasonably could be
 // different
 func New() (toolkit *Toolkit) {
+	fmt.Printf("start of New()\n")
+
 	// TODO: Show should be from config, and obs and x11 information. Logically
 	// stored in ~/.config/$APP_NAME and the local data should be
 	// ~/.local/share/$APP_NAME
 
 	showConfig := map[string]string{
 		"name":     "she hacked you",
-		"obs_host": "192.168.1.1:4444",
+		"obs_host": "10.100.100.1:4444",
 	}
 
-	wsAPI := obs.ConnectToOBS(showConfig["obs_host"])
+	fmt.Printf("attempting to connect to obs wsAPI\n")
+	wsAPI := obs.ConnectToOBS(
+		"10.100.100.1:4444",
+		//goobs.WithPassword(""),
+		//goobs.WithRequestHeader(http.Header{"User-Agent": []string{"goobs-e2e/0.0.0"}}),
+	)
+
+	wayland.WaylandTest()
+
+	display, err := wayland.Connect("10.100.100.1")
+	if err != nil {
+		fmt.Printf("err: %v\n", err)
+	}
+	fmt.Printf("display: %v\n", display)
+
+	//fmt.Printf("before toolkit = &Toolkit\n")
+
+	//fmt.Printf("trying ConnectToX11\n")
+	////x11.ConnectToX11()
 
 	toolkit = &Toolkit{
 		Config: showConfig,
@@ -48,7 +70,7 @@ func New() (toolkit *Toolkit) {
 			// ui concept only really
 		},
 		X11: &x11.X11{
-			Client: x11.ConnectToX11(),
+			//Client: ,
 		},
 		Delay: 1500 * time.Millisecond,
 	}
@@ -65,9 +87,10 @@ func New() (toolkit *Toolkit) {
 	//toolkit.OBS.Show.OBS.Scenes = &scenes.Client{Client: t.OBS.WS}
 	//toolkit.OBS.Show.OBS.Items =
 	//toolkit.Show.Client = toolkit.OBS.WS
-	//toolkit.Show.Cache()
+	//toolkit.Show.Cache()A
+	//fmt.Printf("before initActiveWindow()\n")
 
-	toolkit.X11.InitActiveWindow()
+	//toolkit.X11.InitActiveWindow()
 	return toolkit
 }
 

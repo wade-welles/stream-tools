@@ -27,6 +27,8 @@ github.com/multiverse-os/loading v0.0.0-20230205140225-67dcaf84ca47/go.mod h1:MH
 github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d h1:VhgPp6v9qf9Agr/56bj7Y/xa04UccTW04VP0Qed4vnQ=
 github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d/go.mod h1:YUTz3bUH2ZwIWBy3CJBeOBEugqcmXREj14T+iG/4k4U=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
+github.com/rajveermalviya/go-wayland v0.0.0-20230130181619-0ad78d1310b2 h1:fC4GWTfgaK+/WU+KduZ5XESFVUlWWqiYsSN26qwpgt8=
+github.com/rajveermalviya/go-wayland v0.0.0-20230130181619-0ad78d1310b2/go.mod h1:Yazy/rBHrea0shNmuWkli2YhhL+4N/qNIYamZPNbuLM=
 github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=
 github.com/rogpeppe/go-internal v1.10.0/go.mod h1:UQnix2H7Ngw/k4C5ijL5+65zddjncjaFoBhdsK/akog=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=

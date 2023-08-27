@@ -21,6 +21,7 @@ require (
 	github.com/multiverse-os/cli/terminal/ansi v0.0.0-00010101000000-000000000000 // indirect
 	github.com/multiverse-os/loading v0.0.0-20230205140225-67dcaf84ca47 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
+	github.com/rajveermalviya/go-wayland v0.0.0-20230130181619-0ad78d1310b2 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect

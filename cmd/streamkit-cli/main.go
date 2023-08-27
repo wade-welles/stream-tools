@@ -15,6 +15,7 @@ func main() {
 	// TODO: Don't pass this value in, just read the name of the scene collection
 	// and assign it as the show name
 	toolkit := streamkit.New()
+	fmt.Printf("toolkit:%v", toolkit)
 
 	cmd, initErrors := cli.New(cli.App{
 		Name:        "streamkit-service",

@@ -95,11 +95,19 @@ func MarshalAlignment(alignment int) Alignment { return Alignment(alignment) }
 // TODO: This should either give the full OBS object returned (like an init
 // function) or this should be a method on OBS after it is created you connect.
 func ConnectToOBS(host string) *goobs.Client {
-	client, err := goobs.New(host)
+	fmt.Printf("start of OBS\n")
+	client, err := goobs.New(
+		"10.100.100.1:4444",
+	)
+	fmt.Printf("err: %v", err)
+
+	fmt.Printf("client: %v\n", client)
 	// TODO: If we fail to connect, we could have streamkit launch obs
 	if err != nil {
-		panic(err)
+		fmt.Printf("error: %v", err)
 	}
+
+	fmt.Print("returning client\n")
 	return client
 }
 

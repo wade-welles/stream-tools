@@ -13,9 +13,9 @@ import (
 
 type Toolkit struct {
 	// NOTE: Short-poll rate [we will rewrite without short polling after]
-	Delay time.Duration
-	OBS   *obs.Client
-	X11   *x11.X11
+	Delay   time.Duration
+	OBS     *obs.Client
+	XServer *x11.Conn
 	// TODO: Our local copy of the show is entirely separate from obs.Client so we
 	// can change that out while maintaining logic and a data object
 	Show   *broadcast.Show
@@ -39,11 +39,7 @@ func New() (toolkit *Toolkit) {
 	}
 
 	fmt.Printf("attempting to connect to obs wsAPI\n")
-	wsAPI := obs.ConnectToOBS(
-		"10.100.100.1:4444",
-		//goobs.WithPassword(""),
-		//goobs.WithRequestHeader(http.Header{"User-Agent": []string{"goobs-e2e/0.0.0"}}),
-	)
+	wsAPI := obs.ConnectToOBS(showConfig["obs_host"])
 
 	//wayland.WaylandTest()
 
@@ -53,10 +49,18 @@ func New() (toolkit *Toolkit) {
 	//}
 	//fmt.Printf("display: %v\n", display)
 
-	//fmt.Printf("before toolkit = &Toolkit\n")
+	fmt.Printf("before toolkit = &Toolkit\n")
 
 	//fmt.Printf("trying ConnectToX11\n")
-	x11Connection := x11.ConnectToX11()
+	//xServer := x11.ConnectToX11()
+	//fmt.Printf("xServer: %v\n", xServer)
+
+	//xServer.Client.CacheActiveWindow()
+
+	fmt.Printf("xServer active window Title %v\n", xServer.ActiveWindow().Title)
+	fmt.Printf("xServer active window PID %v\n", xServer.ActiveWindow().PID)
+
+	//fmt.Printf("xServer.Client: %v\n", xServer.Client)
 
 	toolkit = &Toolkit{
 		Config: showConfig,
@@ -68,8 +72,10 @@ func New() (toolkit *Toolkit) {
 			//Mode: this is studio vs direct stream which is USELESS
 			// ui concept only really
 		},
-		X11: &x11.X11{
-			Client: x11Connection,
+		XServer: &x11.XServer{
+			Client:               x11.ConnectToX11(),
+			ActiveWindowTitle:    "",
+			ActiveWindowChangeAt: time.Now(),
 		},
 		Delay: 1500 * time.Millisecond,
 	}

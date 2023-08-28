@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	x11 "github.com/wade-welles/x11"
+	x11 "github.com/wade-welles/streamkit/x11"
 )
 
 type Application struct {
@@ -41,10 +41,8 @@ func main() {
 	userHome, _ := os.UserHomeDir()
 
 	x11App := Application{
-		Name: "x11-cli",
-		X11: &x11.X11{
-			Client: x11.ConnectToX11(),
-		},
+		Name:  "x11-cli",
+		X11:   x11.X11Connect("10.101.101.1:0"),
 		Delay: 2 * time.Second,
 	}
 
@@ -59,38 +57,38 @@ func main() {
 	fmt.Printf("Looking for configuration: %v\n", x11App.Paths[Config])
 	fmt.Printf("Storing local data: %v\n", x11App.Paths[Data])
 
-	x11App.X11.InitActiveWindow()
+	//x11App.X11.InitActiveWindow()
 
 	// TODO: Probably want to load some settings from a YAML config to make things
 	// easier
 
-	fmt.Printf("x11App:\n")
+	//fmt.Printf("x11App:\n")
 
-	tick := time.Tick(x11App.Delay)
-	for {
-		select {
-		case <-tick:
-			if x11App.X11.HasActiveWindowChanged() {
-				fmt.Printf("HasActiveWindowChanged(): true\n")
+	//tick := time.Tick(x11App.Delay)
+	//for {
+	//	select {
+	//	case <-tick:
+	//		if x11App.X11.HasActiveWindowChanged() {
+	//			fmt.Printf("HasActiveWindowChanged(): true\n")
 
-				activeWindow := x11App.X11.ActiveWindow()
-				fmt.Printf("  active_window_title: %s\n", activeWindow.Title)
+	//			activeWindow := x11App.X11.ActiveWindow()
+	//			fmt.Printf("  active_window_title: %s\n", activeWindow.Title)
 
-				fmt.Printf("  x11.ActiveWindowTitle: %v\n", x11App.X11.ActiveWindowTitle)
+	//			fmt.Printf("  x11.ActiveWindowTitle: %v\n", x11App.X11.ActiveWindowTitle)
 
-				// NOTE: This worked to prevent it from repeating
-				// HasActiveWindowChanged() over and over
-				x11App.X11.CacheActiveWindow()
+	//			// NOTE: This worked to prevent it from repeating
+	//			// HasActiveWindowChanged() over and over
+	//			x11App.X11.CacheActiveWindow()
 
-			} else {
-				fmt.Printf("tick,...\n")
-				fmt.Printf("  x11.ActiveWindowTitle: %v\n", x11App.X11.ActiveWindowTitle)
-				fmt.Printf(
-					"  x11.ActiveWindow().Type.String(): %v\n",
-					x11App.X11.ActiveWindow().Type.String(),
-				)
-			}
-		}
-	}
+	//		} else {
+	//			fmt.Printf("tick,...\n")
+	//			fmt.Printf("  x11.ActiveWindowTitle: %v\n", x11App.X11.ActiveWindowTitle)
+	//			fmt.Printf(
+	//				"  x11.ActiveWindow().Type.String(): %v\n",
+	//				x11App.X11.ActiveWindow().Type.String(),
+	//			)
+	//		}
+	//	}
+	//}
 
 }

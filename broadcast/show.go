@@ -12,6 +12,12 @@ import (
 // certainly missed if not thought long abuot it
 
 type Show struct {
+	Id   int
+	Name string
+
+	// Season []*Season
+	// Episodes []*Episode
+
 	ActiveScene *show.Scene
 	StudioScene *show.Scene
 
@@ -19,7 +25,39 @@ type Show struct {
 }
 
 func (sh *Show) EmptyScene() *show.Scene {
-	return &show.Scene{
-		Name: "",
-	}
+	return &show.Scene{Name: ""}
 }
+
+func (sh *Show) Scene(name string) *show.Scene {
+	for _, scene := range sh.Scenes {
+		if scene.Name == name {
+			return scene
+		}
+	}
+	return nil
+}
+
+func (sh *Show) ParseScene(name string, index int) *show.Scene {
+	// Validate name & index
+	var err error
+	if !(0 < len(name) && len(name) < 255) &&
+		!(0 <= index && index < 999) {
+		panic(err)
+	}
+
+	validScene := &show.Scene{
+		Index: index,
+		Name:  name,
+	}
+
+	sh.Scenes = append(sh.Scenes, validScene)
+
+	return validScene
+}
+
+// GOOBS TYPEDEF
+//
+//	type Scene struct {
+//		SceneIndex int    `json:"sceneIndex"`
+//		SceneName  string `json:"sceneName"`
+//	}

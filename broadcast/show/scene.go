@@ -5,12 +5,21 @@ import (
 )
 
 type Scene struct {
-	Id   string
-	Name string
+	Index int
+	Name  string
 
 	Items []*scene.Item
 }
 
 func (sc *Scene) HasName(name string) bool {
-	return sc != nil && sc.Name == name
+	return (sc != nil || len(sc.Name) != len(name) || len(name) == 0)
+}
+
+func (sc *Scene) Item(name string) *scene.Item {
+	return &scene.Item{}
+}
+
+func (sc *Scene) ParseItem(name string, index int) *scene.Item {
+
+	return &scene.Item{}
 }

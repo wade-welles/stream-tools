@@ -185,12 +185,24 @@ type Client struct {
 
 	// TODO: We want OBS to reflect whats running in the application and Show is
 	// our local cache of it
-	Mode Mode
+	//Mode Mode
 
 	//Stats      *Stats
 	//AudioMixer *AudioMixer
 
 	//Sources []*goobs.Source
+}
+
+func LoadClient(addr string) Client {
+	wsAPI := ConnectToOBS(addr)
+
+	client := Client{
+		WS: wsAPI,
+	}
+
+	fmt.Printf("wsAPI: %v\n")
+
+	return client
 }
 
 func (obs Client) IsMode(mode Mode) bool {
@@ -213,17 +225,17 @@ func (obs Client) ToggleStudioMode() bool {
 	return err == nil
 }
 
-func (obs Client) StudioMode() bool {
-	obs.Mode = StudioMode
-	// NOTE: This using pointer to a boolean is incredibly tedious
-	studioMode := true
-	studioModeEnabledParams := ui.SetStudioModeEnabledParams{
-		StudioModeEnabled: &studioMode,
-	}
-
-	_, err := obs.WS.Ui.SetStudioModeEnabled(&studioModeEnabledParams)
-	return err == nil
-}
+//func (obs Client) StudioMode() bool {
+//	//obs.Mode = StudioMode
+//	// NOTE: This using pointer to a boolean is incredibly tedious
+//	studioMode := true
+//	studioModeEnabledParams := ui.SetStudioModeEnabledParams{
+//		StudioModeEnabled: &studioMode,
+//	}
+//
+//	_, err := obs.WS.Ui.SetStudioModeEnabled(&studioModeEnabledParams)
+//	return err == nil
+//}
 
 // go Events() to call this because its meant to be event driven-- but you know
 func (obs Client) Events() {

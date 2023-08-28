@@ -13,9 +13,9 @@ import (
 
 type Toolkit struct {
 	// NOTE: Short-poll rate [we will rewrite without short polling after]
-	Delay   time.Duration
-	OBS     *obs.Client
-	XServer *x11.Conn
+	Delay time.Duration
+	OBS   *obs.Client
+	X11   *x11.X11
 	// TODO: Our local copy of the show is entirely separate from obs.Client so we
 	// can change that out while maintaining logic and a data object
 	Show   *broadcast.Show
@@ -52,13 +52,11 @@ func New() (toolkit *Toolkit) {
 	fmt.Printf("before toolkit = &Toolkit\n")
 
 	//fmt.Printf("trying ConnectToX11\n")
-	//xServer := x11.ConnectToX11()
+	//x11Connection := x11.ConnectToX11()
+
 	//fmt.Printf("xServer: %v\n", xServer)
 
 	//xServer.Client.CacheActiveWindow()
-
-	fmt.Printf("xServer active window Title %v\n", xServer.ActiveWindow().Title)
-	fmt.Printf("xServer active window PID %v\n", xServer.ActiveWindow().PID)
 
 	//fmt.Printf("xServer.Client: %v\n", xServer.Client)
 
@@ -72,13 +70,22 @@ func New() (toolkit *Toolkit) {
 			//Mode: this is studio vs direct stream which is USELESS
 			// ui concept only really
 		},
-		XServer: &x11.XServer{
-			Client:               x11.ConnectToX11(),
-			ActiveWindowTitle:    "",
-			ActiveWindowChangeAt: time.Now(),
+		X11: &x11.X11{
+			Client: x11.ConnectToX11(),
 		},
 		Delay: 1500 * time.Millisecond,
 	}
+
+	//fmt.Printf("x11 active window Title %v\n", toolkit.X11.ActiveWindow().Title)
+	//fmt.Printf("x11 active window PID %v\n", toolkit.X11.ActiveWindow().PID)
+	//fmt.Printf("xServer active window Title %v\n", xServer.ActiveWindow().Title)
+	//fmt.Printf("xServer active window PID %v\n", xServer.ActiveWindow().PID)
+
+	//toolkit.parseScenes()
+
+	//fmt.Printf("how many scenes does len(toolkit.Show.Scenes):%v\n",
+	//	len(toolkit.Show.Scenes),
+	//)
 
 	// TODO: We have to pull the scenes and cache them now
 
@@ -244,5 +251,48 @@ func New() (toolkit *Toolkit) {
 //			staticAvatar.Hide().Update()
 //			staticAvatar.Print()
 //		}
+//	}
+//}
+
+//func (tk *Toolkit) parseSceneItems(name string) {
+//
+//	params := &sceneitems.GetSceneItemListParams{SceneName: "Primary"}
+//
+//	response, err := tk.OBS.WS.SceneItems.GetSceneItemList(params)
+//	//response, err := sceneitems.Client.SceneItems.GetSceneItemList(params)
+//
+//	if err != nil {
+//		panic(err)
+//	}
+//
+//	fmt.Printf("response: %v\n", response)
+//
+//	//type GetSceneItemListResponse struct {
+//	//	SceneItems []*typedefs.SceneItem `json:"sceneItems,omitempty"`
+//	//}
+//
+//	//(*GetSceneItemListResponse, error) {
+//}
+//
+//func (tk *Toolkit) parseScenes() {
+//	scenes, err := tk.OBS.Scenes()
+//	if err != nil {
+//		fmt.Printf("error trying to get obs scenes(): %v", err)
+//	}
+//
+//	fmt.Printf("how many len(scenes): %v\n", len(scenes))
+//	for _, scene := range scenes {
+//		fmt.Printf("scene.Name:\n", scene.SceneName)
+//	}
+//
+//	for _, scene := range scenes {
+//		tk.Show.ParseScene(scene.SceneName, scene.SceneIndex)
+//		sceneItems, err := tk.parseSceneItems(scene.SceneName)
+//
+//	}
+//	if err != nil {
+//		fmt.Printf("error is not nil, so it has an error-- get it?\n")
+//
+//		fmt.Printf("error trying to get obs scenes(): %v\n", err)
 //	}
 //}
